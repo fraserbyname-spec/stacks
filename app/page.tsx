@@ -190,7 +190,7 @@ export default function Home() {
     n >= 1000000 ? `$${n.toLocaleString()}`
     : `$${n.toLocaleString()}`
 
-  const shareText = `I just STACKED ${formatBalance(bestBalance)} in ${bestPicks} pick${bestPicks !== 1 ? 's' : ''}. 💸\nCan you beat it?\nstacks-henna.vercel.app`
+  const shareText = `I just STACKED ${formatBalance(bestBalance)} in ${bestPicks} pick${bestPicks !== 1 ? 's' : ''}. 💸\nCan you beat it?\nhttps://stacks-henna.vercel.app/`
 
   const handleShare = () => {
     if (navigator.share) {
