@@ -20,6 +20,7 @@ export default function Home() {
   const [bestPicks, setBestPicks] = useState(0)
   const [gamesPlayed, setGamesPlayed] = useState(0)
   const [hasPlayedBefore, setHasPlayedBefore] = useState(false)
+  const [hasPickedThisSession, setHasPickedThisSession] = useState(false)
   const [showShareButton, setShowShareButton] = useState(false)
   const [lastRunBalance, setLastRunBalance] = useState(0)
   const [lastRunPicks, setLastRunPicks] = useState(0)
@@ -95,6 +96,7 @@ export default function Home() {
   const pickTile = (index: number) => {
     if (gameState !== 'playing') return
     playTileTap()
+    setHasPickedThisSession(true)
     clearAllTimers()
     setSelectedTile(index)
     setGameState('pulsing')
@@ -106,7 +108,7 @@ export default function Home() {
       addTimer(() => {
         setPulseActive(false)
         pulseCount++
-        if (pulseCount < 3) {
+        if (pulseCount < 2) {
           addTimer(doPulse, 150)
         } else {
           addTimer(() => runReveal(index, losingTile), 200)
@@ -189,7 +191,7 @@ export default function Home() {
 
   const formatBalance = (n: number) => `$${n.toLocaleString()}`
 
-  const shareText = `I just STACKED:\n${formatBalance(lastRunBalance)}\nNailed ${lastRunPicks} pick${lastRunPicks !== 1 ? 's' : ''} 💸\nhttps://stacks-henna.vercel.app/`
+  const shareText = `I just STACKED:\n${formatBalance(lastRunBalance)}\nNailed ${lastRunPicks} pick${lastRunPicks !== 1 ? 's' : ''} 💸\n\nstacks-henna.vercel.app/`
 
   const handleShare = () => {
     if (navigator.share) {
@@ -294,7 +296,7 @@ export default function Home() {
         </div>
 
         {/* Instructions */}
-        {!hasPlayedBefore && gameState === 'playing' && (
+        {!hasPickedThisSession && gameState === 'playing' && (
           <div className="text-center text-sm text-[#7F8C8D] leading-relaxed space-y-1">
             <p>Choose a tile.</p>
             <p>4 are <span className="text-[#2ECC71] font-semibold">green</span>. 1 is <span className="text-[#E74C3C] font-semibold">red</span>.</p>
