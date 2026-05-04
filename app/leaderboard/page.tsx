@@ -40,8 +40,7 @@ export default function Leaderboard() {
       <div className="bg-white rounded-3xl shadow-sm w-full max-w-sm p-8 flex flex-col gap-6">
 
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-[#1A2B3C] tracking-tight">STACKS</h1>
-          <p className="text-[#7F8C8D] text-sm mt-1">The world&apos;s biggest stacks</p>
+          <h1 className="text-2xl font-bold text-[#1A2B3C] tracking-tight">World&apos;s Biggest Stacks</h1>
         </div>
 
         {loading ? (
