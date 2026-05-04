@@ -1,65 +1,338 @@
-import Image from "next/image";
+'use client'
+
+import { playTileTap, playPulseBeat, playTileRevealWin, playTileRevealLose, playBalanceUpdate, playRunOver } from './sounds'
+
+import { useState, useEffect, useRef } from 'react'
+
+type GameState = 'idle' | 'playing' | 'pulsing' | 'revealing' | 'dead' | 'waiting'
 
 export default function Home() {
+  const [balance, setBalance] = useState(1)
+  const [picks, setPicks] = useState(0)
+  const [gameState, setGameState] = useState<GameState>('idle')
+  const [losingTile, setLosingTile] = useState<number>(-1)
+  const [selectedTile, setSelectedTile] = useState<number | null>(null)
+  const [revealedTiles, setRevealedTiles] = useState<(false | 'win' | 'lose')[]>(Array(5).fill(false))
+  const [pulseActive, setPulseActive] = useState(false)
+  const [playerName, setPlayerName] = useState('')
+  const [nameInput, setNameInput] = useState('')
+  const [showNameModal, setShowNameModal] = useState(false)
+  const [bestBalance, setBestBalance] = useState(1)
+  const [bestPicks, setBestPicks] = useState(0)
+  const [gamesPlayed, setGamesPlayed] = useState(0)
+  const [hasPlayedBefore, setHasPlayedBefore] = useState(false)
+  const [showShareButton, setShowShareButton] = useState(false)
+  const [shimmerKey, setShimmerKey] = useState(0)
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+
+  // Clear all pending timers — prevents overlapping rounds
+  const clearAllTimers = () => {
+    timers.current.forEach(t => clearTimeout(t))
+    timers.current = []
+  }
+
+  const addTimer = (fn: () => void, delay: number) => {
+    const t = setTimeout(fn, delay)
+    timers.current.push(t)
+    return t
+  }
+
+  useEffect(() => {
+    const name = localStorage.getItem('stacks_name')
+    const best = localStorage.getItem('stacks_best')
+    const bestP = localStorage.getItem('stacks_best_picks')
+    const games = localStorage.getItem('stacks_games')
+    const played = localStorage.getItem('stacks_played_before')
+    if (name) setPlayerName(name)
+    else setShowNameModal(true)
+    if (best) setBestBalance(Number(best))
+    if (bestP) setBestPicks(Number(bestP))
+    if (games) setGamesPlayed(Number(games))
+    if (played) setHasPlayedBefore(true)
+    return () => clearAllTimers()
+  }, [])
+
+  useEffect(() => {
+    if (playerName && gameState === 'idle') newRound(0, 0)
+  }, [playerName])
+
+  const newRound = (currentBalance: number, currentPicks: number) => {
+    clearAllTimers()
+    setRevealedTiles(Array(5).fill(false))
+    setSelectedTile(null)
+    setPulseActive(false)
+    setLosingTile(Math.floor(Math.random() * 5))
+    setBalance(currentBalance === 0 ? 1 : currentBalance)
+    setPicks(currentPicks)
+    setGameState('playing')
+  }
+
+  const saveName = () => {
+    const trimmed = nameInput.trim()
+    if (!trimmed) return
+    setPlayerName(trimmed)
+    localStorage.setItem('stacks_name', trimmed)
+    setShowNameModal(false)
+  }
+
+  const startNewGame = () => {
+    setShowShareButton(false)
+    clearAllTimers()
+    setRevealedTiles(Array(5).fill(false))
+    setSelectedTile(null)
+    setPulseActive(false)
+    setLosingTile(Math.floor(Math.random() * 5))
+    setBalance(1)
+    setPicks(0)
+    setGameState('playing')
+    triggerShimmer()
+  }
+
+  const triggerShimmer = () => {
+    setShimmerKey(k => k + 1)
+  }
+
+  const pickTile = (index: number) => {
+    if (gameState !== 'playing') return
+    playTileTap()
+    clearAllTimers()
+    setSelectedTile(index)
+    setGameState('pulsing')
+
+    // 3 pulses then reveal
+    let pulseCount = 0
+    const doPulse = () => {
+      setPulseActive(true)
+      playPulseBeat(pulseCount)
+      addTimer(() => {
+        setPulseActive(false)
+        pulseCount++
+        if (pulseCount < 3) {
+          addTimer(doPulse, 150)
+        } else {
+          addTimer(() => runReveal(index, losingTile), 200)
+        }
+      }, 300)
+    }
+    doPulse()
+  }
+
+  const runReveal = (chosenIndex: number, currentLosingTile: number) => {
+    setGameState('revealing')
+    // Always start from cleared state
+    setRevealedTiles(Array(5).fill(false))
+
+    const isLose = chosenIndex === currentLosingTile
+    const revealOrder = chosenIndex <= 2 ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4]
+    const SPEED = 360
+    // Total time for all 5 tiles to reveal
+    const totalRevealTime = 4 * SPEED
+
+    revealOrder.forEach((ti, step) => {
+      addTimer(() => {
+        setRevealedTiles(prev => {
+          const next = [...prev] as (false | 'win' | 'lose')[]
+          next[ti] = ti === currentLosingTile ? 'lose' : 'win'
+          return next
+        })
+        if (ti === currentLosingTile) {
+          playTileRevealLose()
+        } else {
+          playTileRevealWin(ti)
+        }
+      }, step * SPEED)
+    })
+
+    // After ALL tiles revealed, decide outcome
+    addTimer(() => {
+      if (isLose) {
+        setGamesPlayed(prev => {
+          const newGames = prev + 1
+          localStorage.setItem('stacks_games', String(newGames))
+          return newGames
+        })
+        localStorage.setItem('stacks_played_before', 'true')
+        setHasPlayedBefore(true)
+
+        setBalance(prev => {
+          if (prev > bestBalance) {
+            setBestBalance(prev)
+            setBestPicks(picks)
+            localStorage.setItem('stacks_best', String(prev))
+            localStorage.setItem('stacks_best_picks', String(picks))
+            setShowShareButton(true)
+          }
+          return prev
+        })
+        playRunOver()
+        setGameState('dead')
+      } else {
+        setBalance(prev => prev * 2)
+        playBalanceUpdate()
+        setPicks(prev => {
+          const newPicks = prev + 1
+          // Clear tiles, then start next round after brief pause
+          addTimer(() => {
+            setRevealedTiles(Array(5).fill(false))
+            setSelectedTile(null)
+            setPulseActive(false)
+            setLosingTile(Math.floor(Math.random() * 5))
+            setGameState('playing')
+            triggerShimmer()
+          }, 400)
+          return newPicks
+        })
+      }
+    }, totalRevealTime + SPEED)
+  }
+
+  const formatBalance = (n: number) =>
+    n >= 1000000 ? `$${n.toLocaleString()}`
+    : `$${n.toLocaleString()}`
+
+  const shareText = `I just STACKED ${formatBalance(bestBalance)} in ${bestPicks} pick${bestPicks !== 1 ? 's' : ''}. 💸\nCan you beat it?\nplaystacks.app`
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({ text: shareText })
+    } else {
+      navigator.clipboard.writeText(shareText)
+      alert('Copied to clipboard!')
+    }
+  }
+
+  const activeGame = (['playing', 'pulsing', 'revealing'] as GameState[]).includes(gameState)
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <main className="min-h-screen bg-[#F4F6F8] flex items-center justify-center p-4">
+
+      {/* Name Modal */}
+      {showNameModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-xl">
+            <h2 className="text-2xl font-bold text-[#1A2B3C] mb-2">Welcome</h2>
+            <p className="text-[#7F8C8D] text-sm mb-6">What should we call you on the leaderboard?</p>
+            <input
+              type="text"
+              maxLength={20}
+              placeholder="Your name"
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveName()}
+              className="w-full border border-[#CBD2D9] rounded-xl px-4 py-3 text-[#1A2B3C] text-base outline-none focus:border-[#1A3A5A] mb-4"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <button
+              onClick={saveName}
+              className="w-full bg-[#1A3A5A] text-white rounded-xl py-3 font-semibold text-base"
+            >
+              Let&apos;s go
+            </button>
+          </div>
         </div>
-      </main>
-    </div>
-  );
+      )}
+
+      {/* Run Over Overlay */}
+      {gameState === 'dead' && (
+        <div
+          className="fixed inset-0 bg-black/75 flex items-center justify-center z-40 p-6"
+          onClick={() => setGameState('waiting')}
+        >
+          <div className="text-center">
+            <p className="text-white/50 text-xs font-semibold tracking-widest uppercase mb-4">Run over</p>
+            <p className="text-white text-8xl font-bold tabular-nums">{formatBalance(balance)}</p>
+            <p className="text-white/50 text-sm mt-3">{picks} pick{picks !== 1 ? 's' : ''}</p>
+            <p className="text-white/30 text-xs mt-8">tap anywhere to continue</p>
+          </div>
+        </div>
+      )}
+
+      {/* Game Card */}
+      <div className="bg-white rounded-3xl shadow-sm w-full max-w-sm p-8 flex flex-col items-center gap-6">
+
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-[#1A2B3C] tracking-tight">STACKS</h1>
+          <p className="text-[#7F8C8D] text-sm mt-1">How much bank can you make?</p>
+        </div>
+
+        <div className="text-center">
+          <p className={`font-bold text-[#1A2B3C] tabular-nums ${
+            formatBalance(balance).length > 12 ? 'text-3xl' :
+            formatBalance(balance).length > 11 ? 'text-4xl' :
+            'text-6xl'
+          }`}>{formatBalance(balance)}</p>
+          {activeGame && (
+            <p className="text-[#7F8C8D] text-sm mt-2">Pick {picks + 1}</p>
+          )}
+        </div>
+
+        {/* Tiles */}
+        <div className="flex gap-2 w-full">
+          {Array(5).fill(null).map((_, i) => {
+            const state = revealedTiles[i]
+            const isSelected = selectedTile === i
+            const isPulseOn = gameState === 'pulsing' && isSelected && pulseActive
+            const isPulseOff = gameState === 'pulsing' && isSelected && !pulseActive
+
+            let bg = 'bg-[#CBD2D9]'
+            if (state === 'win') bg = 'bg-[#2ECC71]'
+            else if (state === 'lose') bg = 'bg-[#E74C3C]'
+            else if (isPulseOn) bg = 'bg-[#1A3A5A]'
+            else if (isPulseOff) bg = 'bg-[#6A9ABB]'
+
+            const ring = (isPulseOn || isPulseOff) ? 'ring-4 ring-[#1A3A5A] ring-offset-1' : ''
+            const cursor = gameState === 'playing' ? 'cursor-pointer hover:bg-[#B0BEC5] active:scale-95' : ''
+
+            return (
+              <button
+                key={`${shimmerKey}-${i}`}
+                onClick={() => pickTile(i)}
+                disabled={gameState !== 'playing'}
+                style={{ animationDelay: `${i * 80}ms` }}
+                className={`flex-1 h-16 rounded-xl transition-all duration-150 ${bg} ${ring} ${cursor} ${gameState === 'playing' ? 'animate-shimmer-tile' : ''}`}
+              />
+            )
+          })}
+        </div>
+
+        {/* Instructions */}
+        {!hasPlayedBefore && gameState === 'playing' && (
+          <div className="text-center text-sm text-[#7F8C8D] leading-relaxed space-y-1">
+            <p>Pick a tile.</p>
+            <p>If it&apos;s <span className="text-[#2ECC71] font-semibold">green</span> your balance doubles.</p>
+            <p>If it&apos;s <span className="text-[#E74C3C] font-semibold">red</span> your run is over.</p>
+          </div>
+        )}
+
+        {/* Play Again */}
+        {gameState === 'waiting' && (
+          <button
+            onClick={startNewGame}
+            className="w-full bg-[#2ECC71] text-white rounded-xl py-4 font-semibold text-base"
+          >
+            Play Again
+          </button>
+        )}
+
+        {/* Share */}
+        {gameState === 'waiting' && showShareButton && (
+          <button
+            onClick={handleShare}
+            className="w-full bg-[#F5C518] text-[#1A2B3C] rounded-xl py-4 font-semibold text-base active:scale-95 active:bg-[#D4A800] transition-all duration-100"
+          >
+            Share Best Result
+          </button>
+        )}
+
+        {/* Stats */}
+        <div className="w-full border-t border-[#F4F6F8] pt-4 text-center space-y-1">
+          <p className="text-[#1A2B3C] font-semibold text-sm">{playerName}</p>
+          <p className="text-[#7F8C8D] text-xs">
+            Best: {formatBalance(bestBalance)} · {bestPicks} picks · {gamesPlayed} run{gamesPlayed !== 1 ? 's' : ''}
+          </p>
+          <a href="/leaderboard" className="text-[#1A3A5A] text-xs underline">leaderboard</a>
+        </div>
+
+      </div>
+    </main>
+  )
 }

@@ -24,3 +24,14 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes shimmer-tile {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.12); }
+  70%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+.animate-shimmer-tile {
+  animation: shimmer-tile 0.35s ease-out both !important;
+}
