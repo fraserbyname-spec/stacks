@@ -240,7 +240,11 @@ export default function Home() {
         >
           <div className="text-center">
             <p className="text-white/50 text-xs font-semibold tracking-widest uppercase mb-4">Run over</p>
-            <p className="text-white text-8xl font-bold tabular-nums">{formatBalance(balance)}</p>
+            <p className={`text-white font-bold tabular-nums ${
+              formatBalance(balance).length > 12 ? 'text-3xl' :
+              formatBalance(balance).length > 11 ? 'text-4xl' :
+              'text-8xl'
+            }`}>{formatBalance(balance)}</p>
             <p className="text-white/50 text-sm mt-3">{picks} pick{picks !== 1 ? 's' : ''}</p>
             <p className="text-white/30 text-xs mt-8">tap anywhere to continue</p>
           </div>
