@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { playTileTap, playPulseBeat, playTileRevealWin, playTileRevealLose, playBalanceUpdate, playRunOver } from './sounds'
+import { supabase } from './supabase'
 
 type GameState = 'idle' | 'playing' | 'pulsing' | 'revealing' | 'dead' | 'waiting'
 
@@ -163,6 +164,24 @@ export default function Home() {
           }
           // Show share button if run ended at $32 or above
           if (prev >= 32) setShowShareButton(true)
+          // Submit score to leaderboard
+          if (prev >= 32) {
+            const pid = localStorage.getItem('stacks_player_id') || (() => {
+              const id = Math.random().toString(36).slice(2)
+              localStorage.setItem('stacks_player_id', id)
+              return id
+            })()
+            fetch('/api/scores', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                player_name: playerName,
+                balance: prev,
+                picks,
+                player_id: pid
+              })
+            })
+          }
           return prev
         })
         setPicks(prev => {
@@ -335,6 +354,7 @@ export default function Home() {
           <p className="text-[#7F8C8D] text-xs">
             Best: {formatBalance(bestBalance)} · {bestPicks} picks · {gamesPlayed} run{gamesPlayed !== 1 ? 's' : ''}
           </p>
+          <a href="/leaderboard" className="text-[#1A3A5A] text-xs underline">leaderboard</a>
         </div>
 
       </div>
