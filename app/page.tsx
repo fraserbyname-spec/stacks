@@ -210,7 +210,7 @@ export default function Home() {
 
   const formatBalance = (n: number) => `$${n.toLocaleString()}`
 
-  const shareText = `I just STACKED:\n${formatBalance(lastRunBalance)}\nNailed ${lastRunPicks} pick${lastRunPicks !== 1 ? 's' : ''} 💸\n\nwww.playstacks.vercel.app`
+  const shareText = `I just STACKED:\n${formatBalance(lastRunBalance)}\nNailed ${lastRunPicks} pick${lastRunPicks !== 1 ? 's' : ''} 💸\n\nhttps://stacksgame.app`
 
   const handleShare = () => {
     if (navigator.share) {
