@@ -234,7 +234,7 @@ export default function Home() {
             <p className="text-[#7F8C8D] text-sm mb-6">What should we call you on the leaderboard?</p>
             <input
               type="text"
-              maxLength={20}
+              maxLength={12}
               placeholder="Your name"
               value={nameInput}
               onChange={e => setNameInput(e.target.value)}
