@@ -1,8 +1,7 @@
 'use client'
 
-import { playTileTap, playPulseBeat, playTileRevealWin, playTileRevealLose, playBalanceUpdate, playRunOver } from './sounds'
-
 import { useState, useEffect, useRef } from 'react'
+import { playTileTap, playPulseBeat, playTileRevealWin, playTileRevealLose, playBalanceUpdate, playRunOver } from './sounds'
 
 type GameState = 'idle' | 'playing' | 'pulsing' | 'revealing' | 'dead' | 'waiting'
 
@@ -22,10 +21,11 @@ export default function Home() {
   const [gamesPlayed, setGamesPlayed] = useState(0)
   const [hasPlayedBefore, setHasPlayedBefore] = useState(false)
   const [showShareButton, setShowShareButton] = useState(false)
+  const [lastRunBalance, setLastRunBalance] = useState(0)
+  const [lastRunPicks, setLastRunPicks] = useState(0)
   const [shimmerKey, setShimmerKey] = useState(0)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
-  // Clear all pending timers — prevents overlapping rounds
   const clearAllTimers = () => {
     timers.current.forEach(t => clearTimeout(t))
     timers.current = []
@@ -53,7 +53,7 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (playerName && gameState === 'idle') newRound(0, 0)
+    if (playerName && gameState === 'idle') newRound(1, 0)
   }, [playerName])
 
   const newRound = (currentBalance: number, currentPicks: number) => {
@@ -62,7 +62,7 @@ export default function Home() {
     setSelectedTile(null)
     setPulseActive(false)
     setLosingTile(Math.floor(Math.random() * 5))
-    setBalance(currentBalance === 0 ? 1 : currentBalance)
+    setBalance(currentBalance)
     setPicks(currentPicks)
     setGameState('playing')
   }
@@ -99,7 +99,6 @@ export default function Home() {
     setSelectedTile(index)
     setGameState('pulsing')
 
-    // 3 pulses then reveal
     let pulseCount = 0
     const doPulse = () => {
       setPulseActive(true)
@@ -119,13 +118,11 @@ export default function Home() {
 
   const runReveal = (chosenIndex: number, currentLosingTile: number) => {
     setGameState('revealing')
-    // Always start from cleared state
     setRevealedTiles(Array(5).fill(false))
 
     const isLose = chosenIndex === currentLosingTile
     const revealOrder = chosenIndex <= 2 ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4]
     const SPEED = 360
-    // Total time for all 5 tiles to reveal
     const totalRevealTime = 4 * SPEED
 
     revealOrder.forEach((ti, step) => {
@@ -143,7 +140,6 @@ export default function Home() {
       }, step * SPEED)
     })
 
-    // After ALL tiles revealed, decide outcome
     addTimer(() => {
       if (isLose) {
         setGamesPlayed(prev => {
@@ -153,25 +149,30 @@ export default function Home() {
         })
         localStorage.setItem('stacks_played_before', 'true')
         setHasPlayedBefore(true)
+        playRunOver()
 
         setBalance(prev => {
+          setLastRunBalance(prev)
           if (prev > bestBalance) {
             setBestBalance(prev)
             setBestPicks(picks)
             localStorage.setItem('stacks_best', String(prev))
             localStorage.setItem('stacks_best_picks', String(picks))
-            setShowShareButton(true)
           }
+          // Show share button if run ended at $32 or above
+          if (prev >= 32) setShowShareButton(true)
           return prev
         })
-        playRunOver()
+        setPicks(prev => {
+          setLastRunPicks(prev)
+          return prev
+        })
         setGameState('dead')
       } else {
         setBalance(prev => prev * 2)
         playBalanceUpdate()
         setPicks(prev => {
           const newPicks = prev + 1
-          // Clear tiles, then start next round after brief pause
           addTimer(() => {
             setRevealedTiles(Array(5).fill(false))
             setSelectedTile(null)
@@ -186,11 +187,9 @@ export default function Home() {
     }, totalRevealTime + SPEED)
   }
 
-  const formatBalance = (n: number) =>
-    n >= 1000000 ? `$${n.toLocaleString()}`
-    : `$${n.toLocaleString()}`
+  const formatBalance = (n: number) => `$${n.toLocaleString()}`
 
-  const shareText = `I just STACKED ${formatBalance(bestBalance)} in ${bestPicks} pick${bestPicks !== 1 ? 's' : ''}. 💸\nCan you beat it?\nhttps://stacks-henna.vercel.app/`
+  const shareText = `I just STACKED:\n${formatBalance(lastRunBalance)}\nNailed ${lastRunPicks} pick${lastRunPicks !== 1 ? 's' : ''} 💸\nhttps://stacks-henna.vercel.app/`
 
   const handleShare = () => {
     if (navigator.share) {
@@ -261,7 +260,7 @@ export default function Home() {
             'text-6xl'
           }`}>{formatBalance(balance)}</p>
           {activeGame && (
-            <p className="text-[#7F8C8D] text-sm mt-2">Pick {picks + 1}</p>
+            <p className="text-[#7F8C8D] text-sm mt-2">Pick #{picks + 1}</p>
           )}
         </div>
 
@@ -297,9 +296,10 @@ export default function Home() {
         {/* Instructions */}
         {!hasPlayedBefore && gameState === 'playing' && (
           <div className="text-center text-sm text-[#7F8C8D] leading-relaxed space-y-1">
-            <p>Pick a tile.</p>
-            <p>If it&apos;s <span className="text-[#2ECC71] font-semibold">green</span> your balance doubles.</p>
-            <p>If it&apos;s <span className="text-[#E74C3C] font-semibold">red</span> your run is over.</p>
+            <p>Choose a tile.</p>
+            <p>4 are <span className="text-[#2ECC71] font-semibold">green</span>. 1 is <span className="text-[#E74C3C] font-semibold">red</span>.</p>
+            <p><span className="text-[#2ECC71] font-semibold">Green</span> = double your money.</p>
+            <p><span className="text-[#E74C3C] font-semibold">Red</span> = game over.</p>
           </div>
         )}
 
@@ -319,7 +319,7 @@ export default function Home() {
             onClick={handleShare}
             className="w-full bg-[#F5C518] text-[#1A2B3C] rounded-xl py-4 font-semibold text-base active:scale-95 active:bg-[#D4A800] transition-all duration-100"
           >
-            Share Best Result
+            Share Result
           </button>
         )}
 
