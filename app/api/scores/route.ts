@@ -9,33 +9,80 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
-  // Only store if balance is $32 or above
   if (balance < 32) {
     return NextResponse.json({ ok: true, skipped: true })
   }
 
-  const { error } = await supabase
+  // Check if player already has a score
+  const { data: existing } = await supabase
     .from('scores')
-    .insert([{ player_name, balance, picks, player_id }])
+    .select('*')
+    .eq('player_id', player_id)
+    .single()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (existing) {
+    // Only update if new score is better
+    if (balance > existing.balance) {
+      await supabase
+        .from('scores')
+        .update({ balance, picks, player_name })
+        .eq('player_id', player_id)
+    }
+  } else {
+    // Insert new score
+    await supabase
+      .from('scores')
+      .insert([{ player_name, balance, picks, player_id }])
   }
 
   return NextResponse.json({ ok: true })
 }
 
-export async function GET() {
-  // Top 10 scores
-  const { data: top10, error: top10Error } = await supabase
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const player_id = searchParams.get('player_id')
+
+  // Top 10
+  const { data: top10, error } = await supabase
     .from('scores')
     .select('*')
     .order('balance', { ascending: false })
     .limit(10)
 
-  if (top10Error) {
-    return NextResponse.json({ error: top10Error.message }, { status: 500 })
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ top10 })
+  let playerRank = null
+
+  if (player_id) {
+    // Get player's own score
+    const { data: playerScore } = await supabase
+      .from('scores')
+      .select('*')
+      .eq('player_id', player_id)
+      .single()
+
+    if (playerScore) {
+      // Count how many scores are better
+      const { count } = await supabase
+        .from('scores')
+        .select('*', { count: 'exact', head: true })
+        .gt('balance', playerScore.balance)
+
+      const rank = (count ?? 0) + 1
+      const inTop10 = top10?.some(s => s.player_id === player_id)
+
+      if (!inTop10) {
+        playerRank = {
+          rank,
+          player_name: playerScore.player_name,
+          balance: playerScore.balance,
+          picks: playerScore.picks
+        }
+      }
+    }
+  }
+
+  return NextResponse.json({ top10, playerRank })
 }

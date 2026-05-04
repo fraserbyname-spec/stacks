@@ -10,15 +10,25 @@ type Score = {
   created_at: string
 }
 
+type PlayerRank = {
+  rank: number
+  player_name: string
+  balance: number
+  picks: number
+}
+
 export default function Leaderboard() {
   const [top10, setTop10] = useState<Score[]>([])
+  const [playerRank, setPlayerRank] = useState<PlayerRank | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/scores')
+    const player_id = localStorage.getItem('stacks_player_id') || ''
+    fetch(`/api/scores?player_id=${player_id}`)
       .then(r => r.json())
       .then(data => {
         setTop10(data.top10 || [])
+        setPlayerRank(data.playerRank || null)
         setLoading(false)
       })
   }, [])
@@ -52,6 +62,22 @@ export default function Leaderboard() {
                 </div>
               </div>
             ))}
+
+            {playerRank && (
+              <>
+                <div className="border-t border-[#F4F6F8] my-1" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#7F8C8D] text-sm w-6 text-right">#{playerRank.rank}</span>
+                    <span className="text-[#1A2B3C] font-semibold text-sm">{playerRank.player_name}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[#1A2B3C] font-bold text-sm">{formatBalance(playerRank.balance)}</p>
+                    <p className="text-[#7F8C8D] text-xs">{playerRank.picks} picks</p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
