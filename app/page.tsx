@@ -331,7 +331,6 @@ export default function Home() {
           <p className="text-[#7F8C8D] text-xs">
             Best: {formatBalance(bestBalance)} · {bestPicks} picks · {gamesPlayed} run{gamesPlayed !== 1 ? 's' : ''}
           </p>
-          <a href="/leaderboard" className="text-[#1A3A5A] text-xs underline">leaderboard</a>
         </div>
 
       </div>
