@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { playTileTap, playPulseBeat, playTileRevealWin, playTileRevealLose, playBalanceUpdate, playRunOver } from './sounds'
-import { supabase } from './supabase'
 
 type GameState = 'idle' | 'playing' | 'pulsing' | 'revealing' | 'dead' | 'waiting'
 
@@ -26,6 +25,7 @@ export default function Home() {
   const [lastRunBalance, setLastRunBalance] = useState(0)
   const [lastRunPicks, setLastRunPicks] = useState(0)
   const [shimmerKey, setShimmerKey] = useState(0)
+  const [canBank, setCanBank] = useState(false)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
   const clearAllTimers = () => {
@@ -63,6 +63,7 @@ export default function Home() {
     setRevealedTiles(Array(5).fill(false))
     setSelectedTile(null)
     setPulseActive(false)
+    setCanBank(false)
     setLosingTile(Math.floor(Math.random() * 5))
     setBalance(currentBalance)
     setPicks(currentPicks)
@@ -79,6 +80,7 @@ export default function Home() {
 
   const startNewGame = () => {
     setShowShareButton(false)
+    setCanBank(false)
     clearAllTimers()
     setRevealedTiles(Array(5).fill(false))
     setSelectedTile(null)
@@ -88,6 +90,44 @@ export default function Home() {
     setPicks(0)
     setGameState('playing')
     triggerShimmer()
+  }
+
+const handleBank = () => {
+    clearAllTimers()
+    const pid = localStorage.getItem('stacks_player_id') || (() => {
+      const id = Math.random().toString(36).slice(2)
+      localStorage.setItem('stacks_player_id', id)
+      return id
+    })()
+    // Update personal best
+    if (balance > bestBalance) {
+      setBestBalance(balance)
+      setBestPicks(picks)
+      localStorage.setItem('stacks_best', String(balance))
+      localStorage.setItem('stacks_best_picks', String(picks))
+    }
+    // Submit score
+    fetch('/api/scores', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        player_name: playerName,
+        balance,
+        picks,
+        player_id: pid
+      })
+    })
+    // Update games played
+    const newGames = gamesPlayed + 1
+    setGamesPlayed(newGames)
+    localStorage.setItem('stacks_games', String(newGames))
+    localStorage.setItem('stacks_played_before', 'true')
+    setHasPlayedBefore(true)
+    setLastRunBalance(balance)
+    setLastRunPicks(picks)
+    setShowShareButton(true)
+    setCanBank(false)
+    setGameState('waiting')
   }
 
   const triggerShimmer = () => {
@@ -162,26 +202,8 @@ export default function Home() {
             localStorage.setItem('stacks_best', String(prev))
             localStorage.setItem('stacks_best_picks', String(picks))
           }
-          // Show share button if run ended at $32 or above
+          // Share button only if they reached $32 or above
           if (prev >= 32) setShowShareButton(true)
-          // Submit score to leaderboard
-          if (prev >= 32) {
-            const pid = localStorage.getItem('stacks_player_id') || (() => {
-              const id = Math.random().toString(36).slice(2)
-              localStorage.setItem('stacks_player_id', id)
-              return id
-            })()
-            fetch('/api/scores', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                player_name: playerName,
-                balance: prev,
-                picks,
-                player_id: pid
-              })
-            })
-          }
           return prev
         })
         setPicks(prev => {
@@ -190,7 +212,12 @@ export default function Home() {
         })
         setGameState('dead')
       } else {
-        setBalance(prev => prev * 2)
+        setBalance(prev => {
+          const newBalance = prev * 2
+          // Show bank button if new balance >= personal best
+          if (newBalance >= bestBalance) setCanBank(true)
+          return newBalance
+        })
         playBalanceUpdate()
         setPicks(prev => {
           const newPicks = prev + 1
@@ -318,9 +345,20 @@ export default function Home() {
           })}
         </div>
 
+{/* Bank My Stack */}
+        {canBank && gameState === 'playing' && (
+          <button
+            onClick={handleBank}
+            className="w-full bg-[#1A3A5A] text-white rounded-xl py-4 font-semibold text-base active:scale-95 transition-all duration-100"
+          >
+            Bank My Stack 🏦
+          </button>
+        )}
+
         {/* Instructions */}
         {!hasPickedThisSession && gameState === 'playing' && (
           <div className="text-center text-sm text-[#7F8C8D] leading-relaxed space-y-1">
+            <p className="font-semibold text-[#1A2B3C]">Bank your Stack before you bust!</p>
             <p>Choose a tile.</p>
             <p>4 are <span className="text-[#2ECC71] font-semibold">green</span>. 1 is <span className="text-[#E74C3C] font-semibold">red</span>.</p>
             <p><span className="text-[#2ECC71] font-semibold">Green</span> = double your money.</p>
@@ -354,7 +392,7 @@ export default function Home() {
           <p className="text-[#7F8C8D] text-xs">
             Best: {formatBalance(bestBalance)} · {bestPicks} picks · {gamesPlayed} run{gamesPlayed !== 1 ? 's' : ''}
           </p>
-          <a href="/leaderboard" className="text-[#1A3A5A] text-xs underline">leaderboard</a>
+          <a href="/leaderboard" className="text-[#F5C518] text-xs font-semibold underline">leaderboard</a>
         </div>
 
       </div>
