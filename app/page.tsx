@@ -62,7 +62,7 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (playerName && playerId && gameState === 'idle') newRound(1, 0)
+    if (playerName && playerId && gameState === 'idle') newRound(1, 0, playerId)
   }, [playerName, playerId])
 
   const getSession = async (pid: string): Promise<string | null> => {
@@ -79,7 +79,7 @@ export default function Home() {
     }
   }
 
-  const newRound = async (currentBalance: number, currentPicks: number) => {
+  const newRound = async (currentBalance: number, currentPicks: number, pid?: string) => {
     clearAllTimers()
     setRevealedTiles(Array(5).fill(false))
     setSelectedTile(null)
@@ -88,7 +88,7 @@ export default function Home() {
     setBalance(currentBalance)
     setPicks(currentPicks)
     setGameState('playing')
-    const sid = await getSession(playerId)
+    const sid = await getSession(pid || playerId)
     setSessionId(sid)
     triggerShimmer()
   }
@@ -251,14 +251,14 @@ export default function Home() {
         setPicks(prev => prev + 1)
         // Get new session for next round
         addTimer(async () => {
-          setRevealedTiles(Array(5).fill(false))
-          setSelectedTile(null)
-          setPulseActive(false)
-          const sid = await getSession(playerId)
-          setSessionId(sid)
-          setGameState('playing')
-          triggerShimmer()
-        }, 400)
+            setRevealedTiles(Array(5).fill(false))
+            setSelectedTile(null)
+            setPulseActive(false)
+            const sid = await getSession(playerId)
+            setSessionId(sid)
+            setGameState('playing')
+            triggerShimmer()
+          }, 400)
       }
     }, totalRevealTime + SPEED)
   }
