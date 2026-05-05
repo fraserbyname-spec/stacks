@@ -9,7 +9,7 @@ export default function Home() {
   const [balance, setBalance] = useState(1)
   const [picks, setPicks] = useState(0)
   const [gameState, setGameState] = useState<GameState>('idle')
-  const [losingTile, setLosingTile] = useState<number>(-1)
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const [selectedTile, setSelectedTile] = useState<number | null>(null)
   const [revealedTiles, setRevealedTiles] = useState<(false | 'win' | 'lose')[]>(Array(5).fill(false))
   const [pulseActive, setPulseActive] = useState(false)
@@ -26,6 +26,7 @@ export default function Home() {
   const [lastRunPicks, setLastRunPicks] = useState(0)
   const [shimmerKey, setShimmerKey] = useState(0)
   const [canBank, setCanBank] = useState(false)
+  const [playerId, setPlayerId] = useState<string>('')
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
   const clearAllTimers = () => {
@@ -45,6 +46,12 @@ export default function Home() {
     const bestP = localStorage.getItem('stacks_best_picks')
     const games = localStorage.getItem('stacks_games')
     const played = localStorage.getItem('stacks_played_before')
+    let pid = localStorage.getItem('stacks_player_id')
+    if (!pid) {
+      pid = Math.random().toString(36).slice(2)
+      localStorage.setItem('stacks_player_id', pid)
+    }
+    setPlayerId(pid)
     if (name) setPlayerName(name)
     else setShowNameModal(true)
     if (best) setBestBalance(Number(best))
@@ -55,19 +62,35 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (playerName && gameState === 'idle') newRound(1, 0)
-  }, [playerName])
+    if (playerName && playerId && gameState === 'idle') newRound(1, 0)
+  }, [playerName, playerId])
 
-  const newRound = (currentBalance: number, currentPicks: number) => {
+  const getSession = async (pid: string): Promise<string | null> => {
+    try {
+      const res = await fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ player_id: pid })
+      })
+      const data = await res.json()
+      return data.sessionId || null
+    } catch {
+      return null
+    }
+  }
+
+  const newRound = async (currentBalance: number, currentPicks: number) => {
     clearAllTimers()
     setRevealedTiles(Array(5).fill(false))
     setSelectedTile(null)
     setPulseActive(false)
     setCanBank(false)
-    setLosingTile(Math.floor(Math.random() * 5))
     setBalance(currentBalance)
     setPicks(currentPicks)
     setGameState('playing')
+    const sid = await getSession(playerId)
+    setSessionId(sid)
+    triggerShimmer()
   }
 
   const saveName = () => {
@@ -78,35 +101,29 @@ export default function Home() {
     setShowNameModal(false)
   }
 
-  const startNewGame = () => {
+  const startNewGame = async () => {
     setShowShareButton(false)
     setCanBank(false)
     clearAllTimers()
     setRevealedTiles(Array(5).fill(false))
     setSelectedTile(null)
     setPulseActive(false)
-    setLosingTile(Math.floor(Math.random() * 5))
     setBalance(1)
     setPicks(0)
     setGameState('playing')
+    const sid = await getSession(playerId)
+    setSessionId(sid)
     triggerShimmer()
   }
 
-const handleBank = () => {
+  const handleBank = () => {
     clearAllTimers()
-    const pid = localStorage.getItem('stacks_player_id') || (() => {
-      const id = Math.random().toString(36).slice(2)
-      localStorage.setItem('stacks_player_id', id)
-      return id
-    })()
-    // Update personal best
     if (balance > bestBalance) {
       setBestBalance(balance)
       setBestPicks(picks)
       localStorage.setItem('stacks_best', String(balance))
       localStorage.setItem('stacks_best_picks', String(picks))
     }
-    // Submit score
     fetch('/api/scores', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -114,10 +131,9 @@ const handleBank = () => {
         player_name: playerName,
         balance,
         picks,
-        player_id: pid
+        player_id: playerId
       })
     })
-    // Update games played
     const newGames = gamesPlayed + 1
     setGamesPlayed(newGames)
     localStorage.setItem('stacks_games', String(newGames))
@@ -134,8 +150,8 @@ const handleBank = () => {
     setShimmerKey(k => k + 1)
   }
 
-  const pickTile = (index: number) => {
-    if (gameState !== 'playing') return
+  const pickTile = async (index: number) => {
+    if (gameState !== 'playing' || !sessionId) return
     playTileTap()
     setHasPickedThisSession(true)
     clearAllTimers()
@@ -152,18 +168,40 @@ const handleBank = () => {
         if (pulseCount < 2) {
           addTimer(doPulse, 150)
         } else {
-          addTimer(() => runReveal(index, losingTile), 200)
+          addTimer(() => revealFromServer(index), 200)
         }
       }, 300)
     }
     doPulse()
   }
 
-  const runReveal = (chosenIndex: number, currentLosingTile: number) => {
+  const revealFromServer = async (chosenIndex: number) => {
     setGameState('revealing')
     setRevealedTiles(Array(5).fill(false))
 
-    const isLose = chosenIndex === currentLosingTile
+    // Ask server for result
+    let isLose = false
+    let losingTile = -1
+    try {
+      const res = await fetch('/api/game/reveal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          chosen_tile: chosenIndex,
+          player_id: playerId
+        })
+      })
+      const data = await res.json()
+      isLose = data.isLose
+      losingTile = data.losingTile
+    } catch {
+      // If server call fails, default to loss to prevent exploitation
+      isLose = true
+      losingTile = chosenIndex
+    }
+
+    // Reveal from furthest side
     const revealOrder = chosenIndex <= 2 ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4]
     const SPEED = 360
     const totalRevealTime = 4 * SPEED
@@ -172,10 +210,10 @@ const handleBank = () => {
       addTimer(() => {
         setRevealedTiles(prev => {
           const next = [...prev] as (false | 'win' | 'lose')[]
-          next[ti] = ti === currentLosingTile ? 'lose' : 'win'
+          next[ti] = ti === losingTile ? 'lose' : 'win'
           return next
         })
-        if (ti === currentLosingTile) {
+        if (ti === losingTile) {
           playTileRevealLose()
         } else {
           playTileRevealWin(ti)
@@ -193,10 +231,8 @@ const handleBank = () => {
         localStorage.setItem('stacks_played_before', 'true')
         setHasPlayedBefore(true)
         playRunOver()
-
         setBalance(prev => {
           setLastRunBalance(prev)
-          // Share button only if they reached $32 or above
           if (prev >= 32) setShowShareButton(true)
           return prev
         })
@@ -208,23 +244,21 @@ const handleBank = () => {
       } else {
         setBalance(prev => {
           const newBalance = prev * 2
-          // Show bank button if new balance >= personal best
           if (newBalance >= bestBalance) setCanBank(true)
           return newBalance
         })
         playBalanceUpdate()
-        setPicks(prev => {
-          const newPicks = prev + 1
-          addTimer(() => {
-            setRevealedTiles(Array(5).fill(false))
-            setSelectedTile(null)
-            setPulseActive(false)
-            setLosingTile(Math.floor(Math.random() * 5))
-            setGameState('playing')
-            triggerShimmer()
-          }, 400)
-          return newPicks
-        })
+        setPicks(prev => prev + 1)
+        // Get new session for next round
+        addTimer(async () => {
+          setRevealedTiles(Array(5).fill(false))
+          setSelectedTile(null)
+          setPulseActive(false)
+          const sid = await getSession(playerId)
+          setSessionId(sid)
+          setGameState('playing')
+          triggerShimmer()
+        }, 400)
       }
     }, totalRevealTime + SPEED)
   }
@@ -339,7 +373,7 @@ const handleBank = () => {
           })}
         </div>
 
-{/* Bank My Stack */}
+        {/* Bank My Stack */}
         {canBank && gameState === 'playing' && (
           <button
             onClick={handleBank}
