@@ -13,29 +13,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, skipped: true })
   }
 
-  // Insert this run into scores table
-  await supabase
-    .from('scores')
-    .insert([{ player_name, balance, picks, player_id }])
-
-  // Keep only top 10 runs in scores table
-  const { data: top10 } = await supabase
-    .from('scores')
-    .select('id')
-    .order('balance', { ascending: false })
-    .limit(10)
-
-  const top10Ids = top10?.map(s => s.id) ?? []
-
-  if (top10Ids.length === 10) {
-    // Delete any runs not in the top 10
-    await supabase
-      .from('scores')
-      .delete()
-      .not('id', 'in', `(${top10Ids.join(',')})`)
-  }
-
-  // Update personal bests table — one row per player
   const { data: existing } = await supabase
     .from('personal_bests')
     .select('*')
@@ -62,9 +39,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const player_id = searchParams.get('player_id')
 
-  // Top 10 runs
   const { data: top10, error } = await supabase
-    .from('scores')
+    .from('personal_bests')
     .select('*')
     .order('balance', { ascending: false })
     .limit(10)
@@ -76,29 +52,26 @@ export async function GET(request: Request) {
   let playerRank = null
 
   if (player_id) {
-    // Get player's personal best
-    const { data: playerBest } = await supabase
+    const { data: playerScore } = await supabase
       .from('personal_bests')
       .select('*')
       .eq('player_id', player_id)
       .single()
 
-    if (playerBest) {
-      // Check if they're already in the top 10
+    if (playerScore) {
       const inTop10 = top10?.some(s => s.player_id === player_id)
 
       if (!inTop10) {
-        // Count personal bests better than theirs for rank
         const { count } = await supabase
           .from('personal_bests')
           .select('*', { count: 'exact', head: true })
-          .gt('balance', playerBest.balance)
+          .gt('balance', playerScore.balance)
 
         playerRank = {
           rank: (count ?? 0) + 1,
-          player_name: playerBest.player_name,
-          balance: playerBest.balance,
-          picks: playerBest.picks
+          player_name: playerScore.player_name,
+          balance: playerScore.balance,
+          picks: playerScore.picks
         }
       }
     }
