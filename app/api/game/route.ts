@@ -27,6 +27,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+// Clean up sessions older than 24 hours
+  await supabase
+    .from('sessions')
+    .delete()
+    .lt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+
   // Only return session ID — losing tile stays on server
   return NextResponse.json({ sessionId })
 }
