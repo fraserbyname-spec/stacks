@@ -26,6 +26,9 @@ export default function Home() {
   const [lastRunPicks, setLastRunPicks] = useState(0)
   const [shimmerKey, setShimmerKey] = useState(0)
   const [canBank, setCanBank] = useState(false)
+  const [hadBankOption, setHadBankOption] = useState(false)
+  const [showBankSuccess, setShowBankSuccess] = useState(false)
+  const [bankSuccessMessage, setBankSuccessMessage] = useState('')
   const [playerId, setPlayerId] = useState<string>('')
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
@@ -85,6 +88,7 @@ export default function Home() {
     setSelectedTile(null)
     setPulseActive(false)
     setCanBank(false)
+    setHadBankOption(false)
     setBalance(currentBalance)
     setPicks(currentPicks)
     setGameState('playing')
@@ -104,6 +108,8 @@ export default function Home() {
   const startNewGame = async () => {
     setShowShareButton(false)
     setCanBank(false)
+    setHadBankOption(false)
+    setShowBankSuccess(false)
     clearAllTimers()
     setRevealedTiles(Array(5).fill(false))
     setSelectedTile(null)
@@ -118,7 +124,8 @@ export default function Home() {
 
   const handleBank = () => {
     clearAllTimers()
-    if (balance > bestBalance) {
+    const isNewBest = balance > bestBalance
+    if (isNewBest) {
       setBestBalance(balance)
       setBestPicks(picks)
       localStorage.setItem('stacks_best', String(balance))
@@ -141,9 +148,13 @@ export default function Home() {
     setHasPlayedBefore(true)
     setLastRunBalance(balance)
     setLastRunPicks(picks)
-    setShowShareButton(true)
     setCanBank(false)
-    setGameState('waiting')
+    if (balance >= 32) {
+      setBankSuccessMessage(isNewBest ? 'Your new personal best!' : 'Added to the leaderboard!')
+    } else {
+      setBankSuccessMessage('Stack banked!')
+    }
+    setShowBankSuccess(true)
   }
 
   const triggerShimmer = () => {
@@ -168,7 +179,7 @@ export default function Home() {
         if (pulseCount < 2) {
           addTimer(doPulse, 150)
         } else {
-          addTimer(() => revealFromServer(index), 200)
+          revealFromServer(index)
         }
       }, 300)
     }
@@ -179,32 +190,32 @@ export default function Home() {
     setGameState('revealing')
     setRevealedTiles(Array(5).fill(false))
 
-    // Ask server for result
-    let isLose = false
-    let losingTile = -1
-    try {
-      const res = await fetch('/api/game/reveal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: sessionId,
-          chosen_tile: chosenIndex,
-          player_id: playerId
-        })
+    // Start server call immediately in parallel
+    const serverCall = fetch('/api/game/reveal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId,
+        chosen_tile: chosenIndex,
+        player_id: playerId
       })
-      const data = await res.json()
-      isLose = data.isLose
-      losingTile = data.losingTile
-    } catch {
-      // If server call fails, default to loss to prevent exploitation
-      isLose = true
-      losingTile = chosenIndex
-    }
+    }).then(r => r.json()).catch(() => ({ isLose: true, losingTile: chosenIndex }))
 
-    // Reveal from furthest side
     const revealOrder = chosenIndex <= 2 ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4]
     const SPEED = 360
     const totalRevealTime = 4 * SPEED
+
+    // Wait for server result
+    let isLose = false
+    let losingTile = -1
+    try {
+      const data = await serverCall
+      isLose = data.isLose
+      losingTile = data.losingTile
+    } catch {
+      isLose = true
+      losingTile = chosenIndex
+    }
 
     revealOrder.forEach((ti, step) => {
       addTimer(() => {
@@ -244,7 +255,10 @@ export default function Home() {
       } else {
         setBalance(prev => {
           const newBalance = prev * 2
-          if (newBalance >= bestBalance) setCanBank(true)
+          if (newBalance >= bestBalance) {
+            setCanBank(true)
+            setHadBankOption(true)
+          }
           return newBalance
         })
         playBalanceUpdate()
@@ -306,20 +320,50 @@ export default function Home() {
         </div>
       )}
 
+      {/* Bank Success Overlay */}
+      {showBankSuccess && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-40 p-6"
+          style={{ backgroundColor: 'rgba(20, 80, 40, 0.88)' }}
+          onClick={() => {
+            setShowBankSuccess(false)
+            setShowShareButton(true)
+            setGameState('waiting')
+          }}
+        >
+          <div className="text-center">
+            <p className="text-white text-5xl font-bold mb-3">Stacked! 🏦</p>
+            <p className={`text-white font-bold tabular-nums mb-3 ${
+              formatBalance(balance).length > 12 ? 'text-3xl' :
+              formatBalance(balance).length > 11 ? 'text-4xl' :
+              'text-6xl'
+            }`}>{formatBalance(balance)}</p>
+            <p className="text-white/70 text-sm">{bankSuccessMessage}</p>
+            <p className="text-white/30 text-xs mt-8">tap anywhere to continue</p>
+          </div>
+        </div>
+      )}
+
       {/* Run Over Overlay */}
       {gameState === 'dead' && (
         <div
-          className="fixed inset-0 bg-black/75 flex items-center justify-center z-40 p-6"
+          className="fixed inset-0 flex items-center justify-center z-40 p-6"
+          style={{ backgroundColor: hadBankOption ? 'rgba(120, 20, 20, 0.82)' : 'rgba(0, 0, 0, 0.75)' }}
           onClick={() => setGameState('waiting')}
         >
           <div className="text-center">
-            <p className="text-white/50 text-xs font-semibold tracking-widest uppercase mb-4">Run over</p>
+            <p className="text-white/70 text-xs font-semibold tracking-widest uppercase mb-4">
+              {hadBankOption ? 'Bust!' : 'Run over'}
+            </p>
             <p className={`text-white font-bold tabular-nums ${
               formatBalance(balance).length > 12 ? 'text-3xl' :
               formatBalance(balance).length > 11 ? 'text-4xl' :
               'text-8xl'
             }`}>{formatBalance(balance)}</p>
             <p className="text-white/50 text-sm mt-3">{picks} pick{picks !== 1 ? 's' : ''}</p>
+            {hadBankOption && (
+              <p className="text-white/60 text-sm mt-2">Should have banked that stack.</p>
+            )}
             <p className="text-white/30 text-xs mt-8">tap anywhere to continue</p>
           </div>
         </div>
@@ -377,19 +421,19 @@ export default function Home() {
         {canBank && gameState === 'playing' && (
           <button
             onClick={handleBank}
-            className="w-full bg-[#1A3A5A] text-white rounded-xl py-4 font-semibold text-base active:scale-95 transition-all duration-100"
+            className="w-full bg-white text-[#1A2B3C] rounded-xl py-4 font-semibold text-base border-2 border-[#1A2B3C] shadow-md active:scale-95 active:shadow-sm transition-all duration-100"
           >
-            Bank My Stack 🏦
+            Bank My Stack &nbsp; 🏦
           </button>
         )}
 
         {/* Instructions */}
         {!hasPickedThisSession && gameState === 'playing' && (
-          <div className="text-center text-sm text-[#7F8C8D] leading-relaxed space-y-1">
-            <p className="font-semibold text-[#1A2B3C]">Bank your Stack before you bust!</p>
+          <div className="text-center text-base text-[#7F8C8D] leading-relaxed space-y-1">
+            <p className="font-bold text-[#1A2B3C] text-lg">Bank your Stack before you bust!</p>
             <p>Choose a tile.</p>
-            <p>4 are <span className="text-[#2ECC71] font-semibold">green</span>. 1 is <span className="text-[#E74C3C] font-semibold">red</span>.</p>
-            <p><span className="text-[#2ECC71] font-semibold">Green</span> = double your money.</p>
+            <p>4 are <span className="text-[#27AE60] font-semibold">green</span>. 1 is <span className="text-[#E74C3C] font-semibold">red</span>.</p>
+            <p><span className="text-[#27AE60] font-semibold">Green</span> = double your money.</p>
             <p><span className="text-[#E74C3C] font-semibold">Red</span> = game over.</p>
           </div>
         )}
@@ -420,7 +464,7 @@ export default function Home() {
           <p className="text-[#7F8C8D] text-xs">
             Best: {formatBalance(bestBalance)} · {bestPicks} picks · {gamesPlayed} run{gamesPlayed !== 1 ? 's' : ''}
           </p>
-          <a href="/leaderboard" className="text-[#F5C518] text-xs font-semibold underline">leaderboard</a>
+          <a href="/leaderboard" className="text-[#3d5a80] text-sm font-semibold underline">leaderboard</a>
         </div>
 
       </div>
