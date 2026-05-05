@@ -196,12 +196,6 @@ const handleBank = () => {
 
         setBalance(prev => {
           setLastRunBalance(prev)
-          if (prev > bestBalance) {
-            setBestBalance(prev)
-            setBestPicks(picks)
-            localStorage.setItem('stacks_best', String(prev))
-            localStorage.setItem('stacks_best_picks', String(picks))
-          }
           // Share button only if they reached $32 or above
           if (prev >= 32) setShowShareButton(true)
           return prev
