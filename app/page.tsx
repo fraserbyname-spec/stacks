@@ -163,6 +163,7 @@ export default function Home() {
 
   const pickTile = async (index: number) => {
     if (gameState !== 'playing' || !sessionId) return
+    const capturedSessionId = sessionId  // capture at pick time
     playTileTap()
     setHasPickedThisSession(true)
     clearAllTimers()
@@ -179,23 +180,23 @@ export default function Home() {
         if (pulseCount < 2) {
           addTimer(doPulse, 150)
         } else {
-          revealFromServer(index)
+          revealFromServer(index, capturedSessionId)
         }
       }, 300)
     }
     doPulse()
   }
 
-  const revealFromServer = async (chosenIndex: number) => {
+  const revealFromServer = async (chosenIndex: number, lockedSessionId: string) => {
     setGameState('revealing')
     setRevealedTiles(Array(5).fill(false))
 
-    // Start server call immediately
+    // Start server call immediately using the session captured at pick time
     const serverPromise = fetch('/api/game/reveal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        session_id: sessionId,
+        session_id: lockedSessionId,
         chosen_tile: chosenIndex,
         player_id: playerId
       })
