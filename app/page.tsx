@@ -163,7 +163,8 @@ export default function Home() {
 
   const pickTile = async (index: number) => {
     if (gameState !== 'playing' || !sessionId) return
-    const capturedSessionId = sessionId  // capture at pick time
+    const capturedSessionId = sessionId
+    const capturedPlayerId = playerId
     playTileTap()
     setHasPickedThisSession(true)
     clearAllTimers()
@@ -180,38 +181,59 @@ export default function Home() {
         if (pulseCount < 2) {
           addTimer(doPulse, 150)
         } else {
-          revealFromServer(index, capturedSessionId)
+          revealFromServer(index, capturedSessionId, capturedPlayerId)
         }
       }, 300)
     }
     doPulse()
   }
 
-  const revealFromServer = async (chosenIndex: number, lockedSessionId: string) => {
+  const revealFromServer = async (chosenIndex: number, lockedSessionId: string, lockedPlayerId: string) => {
     setGameState('revealing')
     setRevealedTiles(Array(5).fill(false))
-
-    // Start server call immediately using the session captured at pick time
-    const serverPromise = fetch('/api/game/reveal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: lockedSessionId,
-        chosen_tile: chosenIndex,
-        player_id: playerId
-      })
-    }).then(r => r.json()).catch(() => ({ isLose: true, losingTile: chosenIndex }))
 
     const revealOrder = chosenIndex <= 2 ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4]
     const SPEED = 300
     const totalRevealTime = 4 * SPEED
 
-    // Get server result — should arrive well before reveal animation finishes
+    // Fetch result from server with retry
     let isLose = false
     let losingTile = -1
-    const data = await serverPromise
-    isLose = data.isLose ?? true
-    losingTile = data.losingTile ?? Math.floor(Math.random() * 5)
+    let attempts = 0
+    while (attempts < 3) {
+      try {
+        const res = await fetch('/api/game/reveal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: lockedSessionId,
+            chosen_tile: chosenIndex,
+            player_id: lockedPlayerId
+          })
+        })
+        const data = await res.json()
+        if (data.error) {
+          attempts++
+          await new Promise(r => setTimeout(r, 200))
+          continue
+        }
+        isLose = data.isLose
+        losingTile = data.losingTile
+        break
+      } catch {
+        attempts++
+        await new Promise(r => setTimeout(r, 200))
+      }
+    }
+
+    // If all attempts failed, don't punish the player — treat as win with random lose tile
+    if (losingTile === -1) {
+      isLose = false
+      losingTile = Math.floor(Math.random() * 5)
+      while (losingTile === chosenIndex) {
+        losingTile = Math.floor(Math.random() * 5)
+      }
+    }
 
     revealOrder.forEach((ti, step) => {
       addTimer(() => {
