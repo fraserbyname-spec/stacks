@@ -190,8 +190,8 @@ export default function Home() {
     setGameState('revealing')
     setRevealedTiles(Array(5).fill(false))
 
-    // Start server call immediately in parallel
-    const serverCall = fetch('/api/game/reveal', {
+    // Start server call immediately
+    const serverPromise = fetch('/api/game/reveal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -202,20 +202,15 @@ export default function Home() {
     }).then(r => r.json()).catch(() => ({ isLose: true, losingTile: chosenIndex }))
 
     const revealOrder = chosenIndex <= 2 ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4]
-    const SPEED = 360
+    const SPEED = 300
     const totalRevealTime = 4 * SPEED
 
-    // Wait for server result
+    // Get server result — should arrive well before reveal animation finishes
     let isLose = false
     let losingTile = -1
-    try {
-      const data = await serverCall
-      isLose = data.isLose
-      losingTile = data.losingTile
-    } catch {
-      isLose = true
-      losingTile = chosenIndex
-    }
+    const data = await serverPromise
+    isLose = data.isLose ?? true
+    losingTile = data.losingTile ?? Math.floor(Math.random() * 5)
 
     revealOrder.forEach((ti, step) => {
       addTimer(() => {
@@ -268,11 +263,11 @@ export default function Home() {
             setRevealedTiles(Array(5).fill(false))
             setSelectedTile(null)
             setPulseActive(false)
-            const sid = await getSession(playerId)
-            setSessionId(sid)
             setGameState('playing')
             triggerShimmer()
-          }, 400)
+            // Get session in background — don't block the UI
+            getSession(playerId).then(sid => setSessionId(sid))
+          }, 300)
       }
     }, totalRevealTime + SPEED)
   }
@@ -332,14 +327,14 @@ export default function Home() {
           }}
         >
           <div className="text-center">
-            <p className="text-white text-5xl font-bold mb-3">Stacked! 🏦</p>
-            <p className={`text-white font-bold tabular-nums mb-3 ${
-              formatBalance(balance).length > 12 ? 'text-3xl' :
-              formatBalance(balance).length > 11 ? 'text-4xl' :
-              'text-6xl'
+            <p className="text-white text-6xl font-bold mb-4">Stacked! 🏦</p>
+            <p className={`text-white font-bold tabular-nums mb-4 ${
+              formatBalance(balance).length > 12 ? 'text-2xl' :
+              formatBalance(balance).length > 11 ? 'text-3xl' :
+              'text-5xl'
             }`}>{formatBalance(balance)}</p>
-            <p className="text-white/70 text-sm">{bankSuccessMessage}</p>
-            <p className="text-white/30 text-xs mt-8">tap anywhere to continue</p>
+            <p className="text-white/70 text-xl mt-2">{bankSuccessMessage}</p>
+            <p className="text-white/30 text-base mt-8">tap anywhere to continue</p>
           </div>
         </div>
       )}
@@ -352,19 +347,19 @@ export default function Home() {
           onClick={() => setGameState('waiting')}
         >
           <div className="text-center">
-            <p className="text-white/70 text-xs font-semibold tracking-widest uppercase mb-4">
+            <p className="text-white/70 text-4xl font-bold tracking-widest uppercase mb-4">
               {hadBankOption ? 'Bust!' : 'Run over'}
             </p>
             <p className={`text-white font-bold tabular-nums ${
-              formatBalance(balance).length > 12 ? 'text-3xl' :
-              formatBalance(balance).length > 11 ? 'text-4xl' :
-              'text-8xl'
+              formatBalance(balance).length > 12 ? 'text-2xl' :
+              formatBalance(balance).length > 11 ? 'text-3xl' :
+              'text-5xl'
             }`}>{formatBalance(balance)}</p>
-            <p className="text-white/50 text-sm mt-3">{picks} pick{picks !== 1 ? 's' : ''}</p>
+            <p className="text-white/50 text-xl mt-4">{picks} pick{picks !== 1 ? 's' : ''}</p>
             {hadBankOption && (
-              <p className="text-white/60 text-sm mt-2">Should have banked that stack.</p>
+              <p className="text-white/60 text-xl mt-2">Should have banked that stack.</p>
             )}
-            <p className="text-white/30 text-xs mt-8">tap anywhere to continue</p>
+            <p className="text-white/30 text-base mt-8">tap anywhere to continue</p>
           </div>
         </div>
       )}
@@ -374,7 +369,7 @@ export default function Home() {
 
         <div className="text-center">
           <h1 className="text-3xl font-bold text-[#1A2B3C] tracking-tight">STACKS</h1>
-          <p className="text-[#7F8C8D] text-sm mt-1">How much bank can you make?</p>
+          <p className="text-[#7F8C8D] text-lg mt-1">How much bank can you make?</p>
         </div>
 
         <div className="text-center">
