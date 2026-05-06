@@ -196,38 +196,33 @@ export default function Home() {
     const SPEED = 300
     const totalRevealTime = 4 * SPEED
 
-    // Fetch result from server with retry
+    // Fetch result from server
     let isLose = false
     let losingTile = -1
-    let attempts = 0
-    while (attempts < 3) {
-      try {
-        const res = await fetch('/api/game/reveal', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            session_id: lockedSessionId,
-            chosen_tile: chosenIndex,
-            player_id: lockedPlayerId
-          })
+    try {
+      const res = await fetch('/api/game/reveal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: lockedSessionId,
+          chosen_tile: chosenIndex,
+          player_id: lockedPlayerId
         })
-        const data = await res.json()
-        if (data.error) {
-          attempts++
-          await new Promise(r => setTimeout(r, 200))
-          continue
-        }
+      })
+      const data = await res.json()
+      if (typeof data.isLose === 'boolean' && typeof data.losingTile === 'number') {
         isLose = data.isLose
         losingTile = data.losingTile
-        break
-      } catch {
-        attempts++
-        await new Promise(r => setTimeout(r, 200))
+      } else {
+        // Valid response but missing expected fields — don't punish player
+        isLose = false
+        losingTile = Math.floor(Math.random() * 5)
+        while (losingTile === chosenIndex) {
+          losingTile = Math.floor(Math.random() * 5)
+        }
       }
-    }
-
-    // If all attempts failed, don't punish the player — treat as win with random lose tile
-    if (losingTile === -1) {
+    } catch {
+      // Network failure — don't punish player
       isLose = false
       losingTile = Math.floor(Math.random() * 5)
       while (losingTile === chosenIndex) {
