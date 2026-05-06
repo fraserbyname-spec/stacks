@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '../../supabase'
+import { supabaseAdmin as supabase } from '../../supabase'
 
 // Called when a new round starts — generates session server-side
 export async function POST(request: Request) {
