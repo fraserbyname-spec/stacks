@@ -310,7 +310,7 @@ export default function Home() {
   const activeGame = (['playing', 'pulsing', 'revealing'] as GameState[]).includes(gameState)
 
   return (
-    <main className="min-h-screen bg-[#F4F6F8] flex items-center justify-center p-4">
+    <main className="min-h-screen bg-[#F4F6F8] flex flex-col items-center justify-start pt-6 px-4 pb-16">
 
       {/* Name Modal */}
       {showNameModal && (
@@ -413,14 +413,19 @@ export default function Home() {
             const isPulseOn = gameState === 'pulsing' && isSelected && pulseActive
             const isPulseOff = gameState === 'pulsing' && isSelected && !pulseActive
 
-            let bg = 'bg-[#CBD2D9]'
+            // Easter egg tile colours based on balance
+            let defaultBg = 'bg-[#CBD2D9] hover:bg-[#B0BEC5]'
+            if (balance >= 500000001) defaultBg = 'bg-[#efbd0f] hover:bg-[#d4a800]'
+            else if (balance >= 1000001) defaultBg = 'bg-[#09cdec] hover:bg-[#08b8d4]'
+
+            let bg = defaultBg
             if (state === 'win') bg = 'bg-[#2ECC71]'
             else if (state === 'lose') bg = 'bg-[#E74C3C]'
             else if (isPulseOn) bg = 'bg-[#1A3A5A]'
             else if (isPulseOff) bg = 'bg-[#6A9ABB]'
 
             const ring = (isPulseOn || isPulseOff) ? 'ring-4 ring-[#1A3A5A] ring-offset-1' : ''
-            const cursor = gameState === 'playing' ? 'cursor-pointer hover:bg-[#B0BEC5] active:scale-95' : ''
+            const cursor = gameState === 'playing' ? 'cursor-pointer active:scale-95' : ''
 
             return (
               <button
@@ -434,15 +439,21 @@ export default function Home() {
           })}
         </div>
 
-        {/* Bank My Stack */}
-        {canBank && gameState === 'playing' && (
-          <button
-            onClick={handleBank}
-            className="w-full bg-white text-[#1A2B3C] rounded-xl py-4 font-semibold text-base border-2 border-[#1A2B3C] shadow-md active:scale-95 active:shadow-sm transition-all duration-100"
-          >
-            Bank My Stack &nbsp; 🏦
-          </button>
-        )}
+        {/* Bank My Stack — always reserves space so tiles never shift */}
+        <div className="w-full">
+          {canBank && gameState === 'playing' ? (
+            <button
+              onClick={handleBank}
+              className="w-full bg-white text-[#1A2B3C] rounded-xl py-4 font-semibold text-base border-2 border-[#1A2B3C] shadow-md active:scale-95 active:shadow-sm transition-all duration-100"
+            >
+              Bank My Stack &nbsp; 🏦
+            </button>
+          ) : (
+            <div className="w-full py-4 opacity-0 pointer-events-none border-2 border-transparent rounded-xl">
+              &nbsp;
+            </div>
+          )}
+        </div>
 
         {/* Instructions */}
         {!hasPickedThisSession && gameState === 'playing' && (
@@ -484,6 +495,10 @@ export default function Home() {
           <a href="/leaderboard" className="text-[#3d5a80] text-sm font-semibold underline">leaderboard</a>
         </div>
 
+      </div>
+    {/* Ad unit placeholder — 320x50 mobile banner */}
+      <div className="fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-[#E0E0E0] flex items-center justify-center">
+        <p className="text-[#CBD2D9] text-xs">Advertisement</p>
       </div>
     </main>
   )
