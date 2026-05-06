@@ -171,6 +171,17 @@ export default function Home() {
     setSelectedTile(index)
     setGameState('pulsing')
 
+    // Fire server call immediately during pulse so response is ready when pulse ends
+    const serverPromise = fetch('/api/game/reveal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: capturedSessionId,
+        chosen_tile: index,
+        player_id: capturedPlayerId
+      })
+    }).then(r => r.json()).catch(() => null)
+
     let pulseCount = 0
     const doPulse = () => {
       setPulseActive(true)
@@ -178,29 +189,29 @@ export default function Home() {
       addTimer(() => {
         setPulseActive(false)
         pulseCount++
-        if (pulseCount < 2) {
+        if (pulseCount < 1) {
           addTimer(doPulse, 150)
         } else {
-          revealFromServer(index, capturedSessionId, capturedPlayerId)
+          revealFromServer(index, capturedSessionId, capturedPlayerId, serverPromise)
         }
       }, 300)
     }
     doPulse()
   }
 
-  const revealFromServer = async (chosenIndex: number, lockedSessionId: string, lockedPlayerId: string) => {
+  const revealFromServer = async (chosenIndex: number, lockedSessionId: string, lockedPlayerId: string, prefiredPromise?: Promise<any>) => {
     setGameState('revealing')
     setRevealedTiles(Array(5).fill(false))
 
     const revealOrder = chosenIndex <= 2 ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4]
-    const SPEED = 300
+    const SPEED = 200
     const totalRevealTime = 4 * SPEED
 
-    // Fetch result from server
+    // Use pre-fired promise from pickTile if available
     let isLose = false
     let losingTile = -1
     try {
-      const res = await fetch('/api/game/reveal', {
+      const data = prefiredPromise ? await prefiredPromise : await fetch('/api/game/reveal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -208,8 +219,7 @@ export default function Home() {
           chosen_tile: chosenIndex,
           player_id: lockedPlayerId
         })
-      })
-      const data = await res.json()
+      }).then(r => r.json())
       if (typeof data.isLose === 'boolean' && typeof data.losingTile === 'number') {
         isLose = data.isLose
         losingTile = data.losingTile
@@ -268,7 +278,7 @@ export default function Home() {
       } else {
         setBalance(prev => {
           const newBalance = prev * 2
-          if (newBalance >= bestBalance) {
+          if (newBalance > bestBalance) {
             setCanBank(true)
             setHadBankOption(true)
           }
