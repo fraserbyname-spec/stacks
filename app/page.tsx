@@ -47,12 +47,12 @@ export default function Home() {
     const name = localStorage.getItem('stacks_name_v2')
     const best = localStorage.getItem('stacks_best_v2')
     const bestP = localStorage.getItem('stacks_best_picks_v2')
-    const games = localStorage.getItem('stacks_games')
-    const played = localStorage.getItem('stacks_played_before')
-    let pid = localStorage.getItem('stacks_player_id')
+    const games = localStorage.getItem('stacks_games_v2')
+    const played = localStorage.getItem('stacks_played_before_v2')
+    let pid = localStorage.getItem('stacks_player_id_v2')
     if (!pid) {
       pid = Math.random().toString(36).slice(2)
-      localStorage.setItem('stacks_player_id', pid)
+      localStorage.setItem('stacks_player_id_v2', pid)
     }
     setPlayerId(pid)
     if (name) setPlayerName(name)
@@ -143,8 +143,8 @@ export default function Home() {
     })
     const newGames = gamesPlayed + 1
     setGamesPlayed(newGames)
-    localStorage.setItem('stacks_games', String(newGames))
-    localStorage.setItem('stacks_played_before', 'true')
+    localStorage.setItem('stacks_games_v2', String(newGames))
+    localStorage.setItem('stacks_played_before_v2', 'true')
     setHasPlayedBefore(true)
     setLastRunBalance(balance)
     setLastRunPicks(picks)
@@ -171,7 +171,6 @@ export default function Home() {
     setSelectedTile(index)
     setGameState('pulsing')
 
-    // Fire server call immediately during pulse so response is ready when pulse ends
     const serverPromise = fetch('/api/game/reveal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -207,7 +206,6 @@ export default function Home() {
     const SPEED = 200
     const totalRevealTime = 4 * SPEED
 
-    // Use pre-fired promise from pickTile if available
     let isLose = false
     let losingTile = -1
     try {
@@ -224,7 +222,6 @@ export default function Home() {
         isLose = data.isLose
         losingTile = data.losingTile
       } else {
-        // Valid response but missing expected fields — don't punish player
         isLose = false
         losingTile = Math.floor(Math.random() * 5)
         while (losingTile === chosenIndex) {
@@ -232,7 +229,6 @@ export default function Home() {
         }
       }
     } catch {
-      // Network failure — don't punish player
       isLose = false
       losingTile = Math.floor(Math.random() * 5)
       while (losingTile === chosenIndex) {
@@ -259,10 +255,10 @@ export default function Home() {
       if (isLose) {
         setGamesPlayed(prev => {
           const newGames = prev + 1
-          localStorage.setItem('stacks_games', String(newGames))
+          localStorage.setItem('stacks_games_v2', String(newGames))
           return newGames
         })
-        localStorage.setItem('stacks_played_before', 'true')
+        localStorage.setItem('stacks_played_before_v2', 'true')
         setHasPlayedBefore(true)
         playRunOver()
         setBalance(prev => {
@@ -286,16 +282,14 @@ export default function Home() {
         })
         playBalanceUpdate()
         setPicks(prev => prev + 1)
-        // Get new session for next round
         addTimer(async () => {
-            setRevealedTiles(Array(5).fill(false))
-            setSelectedTile(null)
-            setPulseActive(false)
-            setGameState('playing')
-            triggerShimmer()
-            // Get session in background — don't block the UI
-            getSession(playerId).then(sid => setSessionId(sid))
-          }, 300)
+          setRevealedTiles(Array(5).fill(false))
+          setSelectedTile(null)
+          setPulseActive(false)
+          setGameState('playing')
+          triggerShimmer()
+          getSession(playerId).then(sid => setSessionId(sid))
+        }, 300)
       }
     }, totalRevealTime + SPEED)
   }
