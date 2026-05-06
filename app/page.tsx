@@ -44,7 +44,7 @@ export default function Home() {
   }
 
   useEffect(() => {
-    const name = localStorage.getItem('stacks_name')
+    const name = localStorage.getItem('stacks_name_v2')
     const best = localStorage.getItem('stacks_best')
     const bestP = localStorage.getItem('stacks_best_picks')
     const games = localStorage.getItem('stacks_games')
@@ -101,7 +101,7 @@ export default function Home() {
     const trimmed = nameInput.trim()
     if (!trimmed) return
     setPlayerName(trimmed)
-    localStorage.setItem('stacks_name', trimmed)
+    localStorage.setItem('stacks_name_v2', trimmed)
     setShowNameModal(false)
   }
 
