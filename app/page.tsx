@@ -45,8 +45,8 @@ export default function Home() {
 
   useEffect(() => {
     const name = localStorage.getItem('stacks_name_v2')
-    const best = localStorage.getItem('stacks_best')
-    const bestP = localStorage.getItem('stacks_best_picks')
+    const best = localStorage.getItem('stacks_best_v2')
+    const bestP = localStorage.getItem('stacks_best_picks_v2')
     const games = localStorage.getItem('stacks_games')
     const played = localStorage.getItem('stacks_played_before')
     let pid = localStorage.getItem('stacks_player_id')
@@ -128,8 +128,8 @@ export default function Home() {
     if (isNewBest) {
       setBestBalance(balance)
       setBestPicks(picks)
-      localStorage.setItem('stacks_best', String(balance))
-      localStorage.setItem('stacks_best_picks', String(picks))
+      localStorage.setItem('stacks_best_v2', String(balance))
+      localStorage.setItem('stacks_best_picks_v2', String(picks))
     }
     fetch('/api/scores', {
       method: 'POST',
