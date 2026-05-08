@@ -29,6 +29,7 @@ export default function Home() {
   const [hadBankOption, setHadBankOption] = useState(false)
   const [showBankSuccess, setShowBankSuccess] = useState(false)
   const [bankSuccessMessage, setBankSuccessMessage] = useState('')
+  const [lastRunType, setLastRunType] = useState<'banked' | 'busted-with-option' | 'busted-no-option'>('busted-no-option')
   const [playerId, setPlayerId] = useState<string>('')
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
@@ -149,6 +150,7 @@ export default function Home() {
     setLastRunBalance(balance)
     setLastRunPicks(picks)
     setCanBank(false)
+    setLastRunType('banked')
     if (balance >= 32) {
       setBankSuccessMessage(isNewBest ? 'Your new personal best!' : 'Added to the leaderboard!')
     } else {
@@ -270,6 +272,7 @@ export default function Home() {
           setLastRunPicks(prev)
           return prev
         })
+        setLastRunType(hadBankOption ? 'busted-with-option' : 'busted-no-option')
         setGameState('dead')
       } else {
         setBalance(prev => {
@@ -296,7 +299,11 @@ export default function Home() {
 
   const formatBalance = (n: number) => `$${n.toLocaleString()}`
 
-  const shareText = `I just STACKED:\n${formatBalance(lastRunBalance)}\nNailed ${lastRunPicks} pick${lastRunPicks !== 1 ? 's' : ''} 💸\n\nhttps://stacksgame.app`
+  const shareText = lastRunType === 'banked'
+    ? `I just STACKED:\n${formatBalance(lastRunBalance)}\nNailed ${lastRunPicks} pick${lastRunPicks !== 1 ? 's' : ''} 💸\n\nhttps://stacksgame.app`
+    : lastRunType === 'busted-with-option'
+    ? `I just busted on:\n${formatBalance(lastRunBalance)}\nShould have banked it 🤦\n\nhttps://stacksgame.app`
+    : `I made it to:\n${formatBalance(lastRunBalance)}\nStill short of my all time high 📈\n\nhttps://stacksgame.app`
 
   const handleShare = () => {
     if (navigator.share) {
