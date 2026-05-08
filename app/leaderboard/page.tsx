@@ -23,7 +23,7 @@ export default function Leaderboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const player_id = localStorage.getItem('stacks_player_id') || ''
+    const player_id = localStorage.getItem('stacks_player_id_v2') || ''
     fetch(`/api/scores?player_id=${player_id}`)
       .then(r => r.json())
       .then(data => {
