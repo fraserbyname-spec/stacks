@@ -223,8 +223,6 @@ const handleBankDaily = () => {
   }
 
   const triggerShimmer = () => {
-
-  const triggerShimmer = () => {
     setShimmerKey(k => k + 1)
   }
 
@@ -519,13 +517,6 @@ const handleBankDaily = () => {
         </div>
 
         {/* Bank buttons — always reserves space so tiles never shift */}
-        <div className="w-full">
-          {canBank && gameState === 'playing' ? (
-            <button
-              onClick={handleBank}
-              className="w-full bg-white text-[#1A2B3C] rounded-xl py-4 font-semibold text-base border-2 border-[#1A2B3C] shadow-md active:scale-95 active:shadow-sm transition-all duration-100"
-            >
-              {/* Bank buttons — always reserves space so tiles never shift */}
         <div className="w-full">
           {canBank && gameState === 'playing' ? (
             <button
