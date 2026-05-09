@@ -26,7 +26,9 @@ export default function Home() {
   const [lastRunPicks, setLastRunPicks] = useState(0)
   const [shimmerKey, setShimmerKey] = useState(0)
   const [canBank, setCanBank] = useState(false)
+  const [canBankDaily, setCanBankDaily] = useState(false)
   const [hadBankOption, setHadBankOption] = useState(false)
+  const [hadDailyBankOption, setHadDailyBankOption] = useState(false)
   const [showBankSuccess, setShowBankSuccess] = useState(false)
   const [bankSuccessMessage, setBankSuccessMessage] = useState('')
   const [lastRunType, setLastRunType] = useState<'banked' | 'busted-with-option' | 'busted-no-option'>('busted-no-option')
@@ -99,7 +101,9 @@ export default function Home() {
     setSelectedTile(null)
     setPulseActive(false)
     setCanBank(false)
+    setCanBankDaily(false)
     setHadBankOption(false)
+    setHadDailyBankOption(false)
     setBalance(currentBalance)
     setPicks(currentPicks)
     setGameState('playing')
@@ -119,7 +123,9 @@ export default function Home() {
   const startNewGame = async () => {
     setShowShareButton(false)
     setCanBank(false)
+    setCanBankDaily(false)
     setHadBankOption(false)
+    setHadDailyBankOption(false)
     setShowBankSuccess(false)
     clearAllTimers()
     setRevealedTiles(Array(5).fill(false))
@@ -179,6 +185,44 @@ export default function Home() {
     }
     setShowBankSuccess(true)
   }
+
+const handleBankDaily = () => {
+    clearAllTimers()
+    fetch('/api/scores', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        player_name: playerName,
+        balance,
+        picks,
+        player_id: playerId,
+        daily_only: true
+      })
+    })
+    const newGames = gamesPlayed + 1
+    setGamesPlayed(newGames)
+    localStorage.setItem('stacks_games_v2', String(newGames))
+    localStorage.setItem('stacks_played_before_v2', 'true')
+    setHasPlayedBefore(true)
+    setLastRunBalance(balance)
+    setLastRunPicks(picks)
+    setCanBankDaily(false)
+    const todayKey = new Date().toISOString().split('T')[0]
+    const newTodayRuns = todayRuns + 1
+    setTodayRuns(newTodayRuns)
+    localStorage.setItem(`stacks_today_runs_${todayKey}`, String(newTodayRuns))
+    if (balance > todayBest) {
+      setTodayBest(balance)
+      setTodayPicks(picks)
+      localStorage.setItem(`stacks_today_best_${todayKey}`, String(balance))
+      localStorage.setItem(`stacks_today_picks_${todayKey}`, String(picks))
+    }
+    setLastRunType('banked')
+    setBankSuccessMessage('Added to today\'s leaderboard!')
+    setShowBankSuccess(true)
+  }
+
+  const triggerShimmer = () => {
 
   const triggerShimmer = () => {
     setShimmerKey(k => k + 1)
@@ -300,7 +344,11 @@ export default function Home() {
           const newBalance = prev * 2
           if (newBalance > bestBalance) {
             setCanBank(true)
+            setCanBankDaily(false)
             setHadBankOption(true)
+          } else if (newBalance >= 32 && newBalance > todayBest) {
+            setCanBankDaily(true)
+            setHadDailyBankOption(true)
           }
           return newBalance
         })
@@ -393,12 +441,12 @@ export default function Home() {
       {gameState === 'dead' && (
         <div
           className="fixed inset-0 flex items-center justify-center z-40 p-6"
-          style={{ backgroundColor: hadBankOption ? 'rgba(120, 20, 20, 0.82)' : 'rgba(0, 0, 0, 0.75)' }}
+          style={{ backgroundColor: (hadBankOption || hadDailyBankOption) ? 'rgba(120, 20, 20, 0.82)' : 'rgba(0, 0, 0, 0.75)' }}
           onClick={() => setGameState('waiting')}
         >
           <div className="text-center">
             <p className="text-white/70 text-4xl font-bold tracking-widest uppercase mb-4">
-              {hadBankOption ? 'Bust!' : 'Run over'}
+              {(hadBankOption || hadDailyBankOption) ? 'Bust!' : 'Run over'}
             </p>
             <p className={`text-white font-bold tabular-nums ${
               formatBalance(balance).length > 12 ? 'text-2xl' :
@@ -408,6 +456,9 @@ export default function Home() {
             <p className="text-white/50 text-xl mt-4">{picks} pick{picks !== 1 ? 's' : ''}</p>
             {hadBankOption && (
               <p className="text-white/60 text-xl mt-2">Should have banked that stack.</p>
+            )}
+            {!hadBankOption && hadDailyBankOption && (
+              <p className="text-white/60 text-xl mt-2">Should have banked today&apos;s stack.</p>
             )}
             <p className="text-white/30 text-base mt-8">tap anywhere to continue</p>
           </div>
@@ -467,7 +518,14 @@ export default function Home() {
           })}
         </div>
 
-        {/* Bank My Stack — always reserves space so tiles never shift */}
+        {/* Bank buttons — always reserves space so tiles never shift */}
+        <div className="w-full">
+          {canBank && gameState === 'playing' ? (
+            <button
+              onClick={handleBank}
+              className="w-full bg-white text-[#1A2B3C] rounded-xl py-4 font-semibold text-base border-2 border-[#1A2B3C] shadow-md active:scale-95 active:shadow-sm transition-all duration-100"
+            >
+              {/* Bank buttons — always reserves space so tiles never shift */}
         <div className="w-full">
           {canBank && gameState === 'playing' ? (
             <button
@@ -475,6 +533,13 @@ export default function Home() {
               className="w-full bg-white text-[#1A2B3C] rounded-xl py-4 font-semibold text-base border-2 border-[#1A2B3C] shadow-md active:scale-95 active:shadow-sm transition-all duration-100"
             >
               Bank My Stack &nbsp; 🏦
+            </button>
+          ) : canBankDaily && gameState === 'playing' ? (
+            <button
+              onClick={handleBankDaily}
+              className="w-full bg-white text-[#3d5a80] rounded-xl py-4 font-semibold text-base border-2 border-[#3d5a80] shadow-md active:scale-95 active:shadow-sm transition-all duration-100"
+            >
+              Bank Today&apos;s Stack &nbsp; 💰
             </button>
           ) : (
             <div className="w-full py-4 opacity-0 pointer-events-none border-2 border-transparent rounded-xl">
@@ -518,15 +583,15 @@ export default function Home() {
         <div className="w-full border-t border-[#F4F6F8] pt-4 text-center space-y-1">
           <p className="text-[#1A2B3C] font-semibold text-sm">{playerName}</p>
           <p className="text-[#7F8C8D] text-xs">
-            Best: {formatBalance(bestBalance)} · {bestPicks} picks · {gamesPlayed} run{gamesPlayed !== 1 ? 's' : ''}
+            Best: {formatBalance(bestBalance)} <span className="text-[#7F8C8D]">·</span> {bestPicks} picks <span className="text-[#7F8C8D]">·</span> {gamesPlayed} run{gamesPlayed !== 1 ? 's' : ''}
           </p>
           <p className="text-[#7F8C8D] text-xs">
-            Best Today: {formatBalance(todayBest)} · {todayPicks} picks · {todayRuns} run{todayRuns !== 1 ? 's' : ''} today
+            Best Today: {formatBalance(todayBest)} <span className="text-[#7F8C8D]">·</span> {todayPicks} picks <span className="text-[#7F8C8D]">·</span> {todayRuns} run{todayRuns !== 1 ? 's' : ''} today
           </p>
           <div className="flex justify-center gap-3">
-            <a href="/leaderboard" className="text-[#3d5a80] text-xs font-semibold underline">World&apos;s Biggest Stackers</a>
-            <span className="text-[#CBD2D9] text-xs">·</span>
-            <a href="/leaderboard/daily" className="text-[#3d5a80] text-xs font-semibold underline">Today&apos;s Stackers</a>
+            <a href="/leaderboard" className="text-[#3d5a80] text-sm font-semibold underline">World&apos;s Biggest Stackers</a>
+            <span className="text-[#7F8C8D] text-sm">·</span>
+            <a href="/leaderboard/daily" className="text-[#3d5a80] text-sm font-semibold underline">Today&apos;s Stackers</a>
           </div>
         </div>
 

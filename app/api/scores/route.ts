@@ -16,24 +16,28 @@ export async function POST(request: Request) {
   // Today's date in UTC YYYY-MM-DD format
   const today = new Date().toISOString().split('T')[0]
 
-  // Update personal_bests — one row per player, best score only
-  const { data: existing } = await supabase
-    .from('personal_bests')
-    .select('*')
-    .eq('player_id', player_id)
-    .single()
+  const daily_only = body.daily_only === true
 
-  if (existing) {
-    if (balance > existing.balance) {
+  // Update personal_bests — only if not daily_only
+  if (!daily_only) {
+    const { data: existing } = await supabase
+      .from('personal_bests')
+      .select('*')
+      .eq('player_id', player_id)
+      .single()
+
+    if (existing) {
+      if (balance > existing.balance) {
+        await supabase
+          .from('personal_bests')
+          .update({ balance, picks, player_name })
+          .eq('player_id', player_id)
+      }
+    } else {
       await supabase
         .from('personal_bests')
-        .update({ balance, picks, player_name })
-        .eq('player_id', player_id)
+        .insert([{ player_name, balance, picks, player_id }])
     }
-  } else {
-    await supabase
-      .from('personal_bests')
-      .insert([{ player_name, balance, picks, player_id }])
   }
 
   // Update daily_scores — one row per player per day, best score only

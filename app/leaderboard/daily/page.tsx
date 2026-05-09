@@ -101,9 +101,9 @@ export default function DailyLeaderboard() {
 
         <div className="border-t border-[#F4F6F8] pt-4 text-center space-y-2">
           <div className="flex justify-center gap-3">
-            <a href="/leaderboard" className="text-[#3d5a80] text-xs font-semibold underline">World&apos;s Biggest Stackers</a>
-            <span className="text-[#CBD2D9] text-xs">·</span>
-            <a href="/" className="text-[#3d5a80] text-xs font-semibold underline">Back to game</a>
+            <a href="/leaderboard" className="text-[#3d5a80] text-sm font-semibold underline">World&apos;s Biggest Stackers</a>
+            <span className="text-[#7F8C8D] text-sm">·</span>
+            <a href="/" className="text-[#3d5a80] text-sm font-semibold underline">Back to game</a>
           </div>
         </div>
 
