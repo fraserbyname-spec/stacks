@@ -13,6 +13,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, skipped: true })
   }
 
+  // Today's date in UTC YYYY-MM-DD format
+  const today = new Date().toISOString().split('T')[0]
+
+  // Update personal_bests — one row per player, best score only
   const { data: existing } = await supabase
     .from('personal_bests')
     .select('*')
@@ -32,6 +36,35 @@ export async function POST(request: Request) {
       .insert([{ player_name, balance, picks, player_id }])
   }
 
+  // Update daily_scores — one row per player per day, best score only
+  const { data: existingDaily } = await supabase
+    .from('daily_scores')
+    .select('*')
+    .eq('player_id', player_id)
+    .eq('date', today)
+    .single()
+
+  if (existingDaily) {
+    if (balance > existingDaily.balance) {
+      await supabase
+        .from('daily_scores')
+        .update({ balance, picks, player_name })
+        .eq('player_id', player_id)
+        .eq('date', today)
+    }
+  } else {
+    await supabase
+      .from('daily_scores')
+      .insert([{ player_name, balance, picks, player_id, date: today }])
+  }
+
+  // Clean up daily_scores older than 48 hours
+  const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString().split('T')[0]
+  await supabase
+    .from('daily_scores')
+    .delete()
+    .lt('date', twoDaysAgo)
+
   return NextResponse.json({ ok: true })
 }
 
@@ -39,6 +72,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const player_id = searchParams.get('player_id')
 
+  // Top 10 all time
   const { data: top10, error } = await supabase
     .from('personal_bests')
     .select('*')

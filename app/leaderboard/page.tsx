@@ -80,8 +80,9 @@ export default function Leaderboard() {
           </div>
         )}
 
-        <div className="border-t border-[#F4F6F8] pt-4 text-center">
-          <a href="/" className="text-[#1A3A5A] text-xs underline">Back to game</a>
+        <div className="border-t border-[#F4F6F8] pt-4 text-center space-y-2">
+          <a href="/leaderboard/daily" className="block text-[#3d5a80] text-xs font-semibold underline">Today&apos;s Best Stackers</a>
+          <a href="/" className="block text-[#3d5a80] text-xs font-semibold underline">Back to game</a>
         </div>
 
       </div>

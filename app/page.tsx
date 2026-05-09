@@ -499,7 +499,11 @@ export default function Home() {
           <p className="text-[#7F8C8D] text-xs">
             Best: {formatBalance(bestBalance)} · {bestPicks} picks · {gamesPlayed} run{gamesPlayed !== 1 ? 's' : ''}
           </p>
-          <a href="/leaderboard" className="text-[#3d5a80] text-sm font-semibold underline">leaderboard</a>
+          <div className="flex justify-center gap-3">
+            <a href="/leaderboard" className="text-[#3d5a80] text-xs font-semibold underline">World&apos;s Biggest Stackers</a>
+            <span className="text-[#CBD2D9] text-xs">·</span>
+            <a href="/leaderboard/daily" className="text-[#3d5a80] text-xs font-semibold underline">Today&apos;s Stackers</a>
+          </div>
         </div>
 
       </div>
