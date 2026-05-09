@@ -7,7 +7,6 @@ export async function GET(request: Request) {
 
   const today = new Date().toISOString().split('T')[0]
 
-  // Top 10 for today
   const { data: top10, error } = await supabase
     .from('daily_scores')
     .select('*')

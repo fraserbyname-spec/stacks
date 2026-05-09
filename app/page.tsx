@@ -31,6 +31,9 @@ export default function Home() {
   const [bankSuccessMessage, setBankSuccessMessage] = useState('')
   const [lastRunType, setLastRunType] = useState<'banked' | 'busted-with-option' | 'busted-no-option'>('busted-no-option')
   const [playerId, setPlayerId] = useState<string>('')
+  const [todayBest, setTodayBest] = useState(0)
+  const [todayPicks, setTodayPicks] = useState(0)
+  const [todayRuns, setTodayRuns] = useState(0)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
   const clearAllTimers = () => {
@@ -50,6 +53,13 @@ export default function Home() {
     const bestP = localStorage.getItem('stacks_best_picks_v2')
     const games = localStorage.getItem('stacks_games_v2')
     const played = localStorage.getItem('stacks_played_before_v2')
+    const todayKey = new Date().toISOString().split('T')[0]
+    const todayBestVal = localStorage.getItem(`stacks_today_best_${todayKey}`)
+    const todayPicksVal = localStorage.getItem(`stacks_today_picks_${todayKey}`)
+    const todayRunsVal = localStorage.getItem(`stacks_today_runs_${todayKey}`)
+    if (todayBestVal) setTodayBest(Number(todayBestVal))
+    if (todayPicksVal) setTodayPicks(Number(todayPicksVal))
+    if (todayRunsVal) setTodayRuns(Number(todayRunsVal))
     let pid = localStorage.getItem('stacks_player_id_v2')
     if (!pid) {
       pid = Math.random().toString(36).slice(2)
@@ -145,6 +155,17 @@ export default function Home() {
     const newGames = gamesPlayed + 1
     setGamesPlayed(newGames)
     localStorage.setItem('stacks_games_v2', String(newGames))
+    // Update today's stats
+    const todayKey = new Date().toISOString().split('T')[0]
+    const newTodayRuns = todayRuns + 1
+    setTodayRuns(newTodayRuns)
+    localStorage.setItem(`stacks_today_runs_${todayKey}`, String(newTodayRuns))
+    if (balance > todayBest) {
+      setTodayBest(balance)
+      setTodayPicks(picks)
+      localStorage.setItem(`stacks_today_best_${todayKey}`, String(balance))
+      localStorage.setItem(`stacks_today_picks_${todayKey}`, String(picks))
+    }
     localStorage.setItem('stacks_played_before_v2', 'true')
     setHasPlayedBefore(true)
     setLastRunBalance(balance)
@@ -498,6 +519,9 @@ export default function Home() {
           <p className="text-[#1A2B3C] font-semibold text-sm">{playerName}</p>
           <p className="text-[#7F8C8D] text-xs">
             Best: {formatBalance(bestBalance)} · {bestPicks} picks · {gamesPlayed} run{gamesPlayed !== 1 ? 's' : ''}
+          </p>
+          <p className="text-[#7F8C8D] text-xs">
+            Best Today: {formatBalance(todayBest)} · {todayPicks} picks · {todayRuns} run{todayRuns !== 1 ? 's' : ''} today
           </p>
           <div className="flex justify-center gap-3">
             <a href="/leaderboard" className="text-[#3d5a80] text-xs font-semibold underline">World&apos;s Biggest Stackers</a>

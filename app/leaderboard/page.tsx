@@ -81,8 +81,11 @@ export default function Leaderboard() {
         )}
 
         <div className="border-t border-[#F4F6F8] pt-4 text-center space-y-2">
-          <a href="/leaderboard/daily" className="block text-[#3d5a80] text-xs font-semibold underline">Today&apos;s Best Stackers</a>
-          <a href="/" className="block text-[#3d5a80] text-xs font-semibold underline">Back to game</a>
+          <div className="flex justify-center gap-3">
+            <a href="/leaderboard/daily" className="text-[#3d5a80] text-xs font-semibold underline">Today&apos;s Best Stackers</a>
+            <span className="text-[#CBD2D9] text-xs">·</span>
+            <a href="/" className="text-[#3d5a80] text-xs font-semibold underline">Back to game</a>
+          </div>
         </div>
 
       </div>
