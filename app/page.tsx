@@ -374,7 +374,19 @@ const handleBankDaily = () => {
   }
 
   const formatBalance = (n: number) => {
-    if (n >= 16777216) {
+    if (n >= 1000000000000000) {
+      const q = n / 1000000000000000
+      return `$${q % 1 === 0 ? q.toFixed(0) : q.toFixed(1)}Quadrillion`
+    }
+    if (n >= 1000000000000) {
+      const t = n / 1000000000000
+      return `$${t % 1 === 0 ? t.toFixed(0) : t.toFixed(1)}T`
+    }
+    if (n >= 1000000000) {
+      const b = n / 1000000000
+      return `$${b % 1 === 0 ? b.toFixed(0) : b.toFixed(1)}B`
+    }
+    if (n >= 1000000) {
       const m = n / 1000000
       return `$${m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)}M`
     }
@@ -592,16 +604,16 @@ const handleBankDaily = () => {
 
         {/* Stats */}
         <div className="w-full border-t border-[#F4F6F8] pt-4 text-center space-y-1">
-          <p className="text-[#1A2B3C] font-semibold text-sm">{playerName}</p>
-          <p className="text-[#7F8C8D] text-xs">
+          <p className="text-[#1A2B3C] font-semibold text-base">{playerName}</p>
+          <p className="text-[#7F8C8D] text-sm">
             Best: {formatBalance(bestBalance)} <span className="text-[#7F8C8D]">·</span> {bestPicks} picks <span className="text-[#7F8C8D]">·</span> {gamesPlayed} run{gamesPlayed !== 1 ? 's' : ''}
           </p>
-          <p className="text-[#7F8C8D] text-xs">
+          <p className="text-[#7F8C8D] text-sm">
             Best Today: {formatBalance(todayBest)} <span className="text-[#7F8C8D]">·</span> {todayPicks} picks <span className="text-[#7F8C8D]">·</span> {todayRuns} run{todayRuns !== 1 ? 's' : ''} today
           </p>
           <div className="flex justify-center gap-3">
             <a href="/leaderboard" className="text-[#3d5a80] text-sm font-semibold underline">World&apos;s Biggest Stackers</a>
-            <span className="text-[#7F8C8D] text-sm">·</span>
+            <span className="text-[#7F8C8D] text-base font-bold">·</span>
             <a href="/leaderboard/daily" className="text-[#3d5a80] text-sm font-semibold underline">Today&apos;s Stackers</a>
           </div>
         </div>

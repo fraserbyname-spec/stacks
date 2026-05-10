@@ -42,7 +42,19 @@ export default function DailyLeaderboard() {
   }, [])
 
   const formatBalance = (n: number) => {
-    if (n >= 16777216) {
+    if (n >= 1000000000000000) {
+      const q = n / 1000000000000000
+      return `$${q % 1 === 0 ? q.toFixed(0) : q.toFixed(1)}Quadrillion`
+    }
+    if (n >= 1000000000000) {
+      const t = n / 1000000000000
+      return `$${t % 1 === 0 ? t.toFixed(0) : t.toFixed(1)}T`
+    }
+    if (n >= 1000000000) {
+      const b = n / 1000000000
+      return `$${b % 1 === 0 ? b.toFixed(0) : b.toFixed(1)}B`
+    }
+    if (n >= 1000000) {
       const m = n / 1000000
       return `$${m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)}M`
     }
@@ -56,7 +68,7 @@ export default function DailyLeaderboard() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-[#1A2B3C] tracking-tight">Today&apos;s Best Stackers</h1>
           <p className="text-[#7F8C8D] text-sm mt-1">{todayDate}</p>
-          <p className="text-[#7F8C8D] text-xs mt-1">Refreshes daily at midnight NZT</p>
+          <p className="text-[#7F8C8D] text-xs mt-1">Refreshes daily at midday UTC</p>
         </div>
 
         {loading ? (
@@ -99,7 +111,7 @@ export default function DailyLeaderboard() {
         <div className="border-t border-[#F4F6F8] pt-4 text-center">
           <div className="flex justify-center gap-3">
             <a href="/leaderboard" className="text-[#3d5a80] text-sm font-semibold underline">World&apos;s Biggest Stackers</a>
-            <span className="text-[#7F8C8D] text-sm">·</span>
+            <span className="text-[#7F8C8D] text-base font-bold">·</span>
             <a href="/" className="text-[#3d5a80] text-sm font-semibold underline">Back to game</a>
           </div>
         </div>
