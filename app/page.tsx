@@ -56,7 +56,7 @@ export default function Home() {
     const bestP = localStorage.getItem('stacks_best_picks_v2')
     const games = localStorage.getItem('stacks_games_v2')
     const played = localStorage.getItem('stacks_played_before_v2')
-    const todayKey = new Date().toISOString().split('T')[0]
+    const todayKey = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0]
     const todayBestVal = localStorage.getItem(`stacks_today_best_${todayKey}`)
     const todayPicksVal = localStorage.getItem(`stacks_today_picks_${todayKey}`)
     const todayRunsVal = localStorage.getItem(`stacks_today_runs_${todayKey}`)
