@@ -25,6 +25,7 @@ export default function Home() {
   const [lastRunBalance, setLastRunBalance] = useState(0)
   const [lastRunPicks, setLastRunPicks] = useState(0)
   const [shimmerKey, setShimmerKey] = useState(0)
+  const [balancePulse, setBalancePulse] = useState(0)
   const [canBank, setCanBank] = useState(false)
   const [canBankDaily, setCanBankDaily] = useState(false)
   const [hadBankOption, setHadBankOption] = useState(false)
@@ -358,6 +359,7 @@ const handleBankDaily = () => {
           return newBalance
         })
         playBalanceUpdate()
+        setBalancePulse(k => k + 1)
         setPicks(prev => prev + 1)
         addTimer(async () => {
           setRevealedTiles(Array(5).fill(false))
@@ -371,7 +373,13 @@ const handleBankDaily = () => {
     }, totalRevealTime + SPEED)
   }
 
-  const formatBalance = (n: number) => `$${n.toLocaleString()}`
+  const formatBalance = (n: number) => {
+    if (n >= 16777216) {
+      const m = n / 1000000
+      return `$${m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)}M`
+    }
+    return `$${n.toLocaleString()}`
+  }
 
   const shareText = lastRunType === 'banked'
     ? `I just STACKED:\n${formatBalance(lastRunBalance)}\nNailed ${lastRunPicks} pick${lastRunPicks !== 1 ? 's' : ''} 💸\n\nhttps://stacksgame.app`
@@ -475,15 +483,20 @@ const handleBankDaily = () => {
 
         <div className="text-center">
           <h1 className="text-3xl font-bold text-[#1A2B3C] tracking-tight">STACKS</h1>
-          <p className="text-[#7F8C8D] text-lg mt-1">How much bank can you make?</p>
+          <p className="text-[#7F8C8D] text-lg mt-1">
+            {hasPickedThisSession ? '1 bad tile hidden each round' : 'How much bank can you make?'}
+          </p>
         </div>
 
         <div className="text-center">
-          <p className={`font-bold text-[#1A2B3C] tabular-nums ${
-            formatBalance(balance).length > 12 ? 'text-3xl' :
-            formatBalance(balance).length > 11 ? 'text-4xl' :
-            'text-6xl'
-          }`}>{formatBalance(balance)}</p>
+          <p
+            key={balancePulse}
+            className={`font-bold text-[#1A2B3C] tabular-nums ${
+              formatBalance(balance).length > 12 ? 'text-3xl' :
+              formatBalance(balance).length > 11 ? 'text-4xl' :
+              'text-6xl'
+            } ${balancePulse > 0 ? 'animate-balance-pulse' : ''}`}
+          >{formatBalance(balance)}</p>
           {activeGame && (
             <p className="text-[#7F8C8D] text-sm mt-2">Pick #{picks + 1}</p>
           )}
@@ -498,9 +511,9 @@ const handleBankDaily = () => {
             const isPulseOff = gameState === 'pulsing' && isSelected && !pulseActive
 
             // Easter egg tile colours based on balance
-            let defaultBg = 'bg-[#CBD2D9] hover:bg-[#B0BEC5]'
-            if (balance >= 500000001) defaultBg = 'bg-[#efbd0f] hover:bg-[#d4a800]'
-            else if (balance >= 1000001) defaultBg = 'bg-[#09cdec] hover:bg-[#08b8d4]'
+            let defaultBg = 'bg-[#B0BEC5] hover:bg-[#9AABB5] shadow-inner'
+            if (balance >= 500000001) defaultBg = 'bg-[#efbd0f] hover:bg-[#d4a800] shadow-inner'
+            else if (balance >= 1000001) defaultBg = 'bg-[#09cdec] hover:bg-[#08b8d4] shadow-inner'
 
             let bg = defaultBg
             if (state === 'win') bg = 'bg-[#2ECC71]'

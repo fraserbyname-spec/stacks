@@ -41,7 +41,13 @@ export default function DailyLeaderboard() {
       })
   }, [])
 
-  const formatBalance = (n: number) => `$${n.toLocaleString()}`
+  const formatBalance = (n: number) => {
+    if (n >= 16777216) {
+      const m = n / 1000000
+      return `$${m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)}M`
+    }
+    return `$${n.toLocaleString()}`
+  }
 
   return (
     <main className="min-h-screen bg-[#F4F6F8] flex items-center justify-center p-4">
@@ -58,7 +64,7 @@ export default function DailyLeaderboard() {
         ) : top10.length === 0 ? (
           <p className="text-center text-[#7F8C8D] text-sm">No scores yet today. Be the first!</p>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             {top10.map((score, index) => (
               <div key={score.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
