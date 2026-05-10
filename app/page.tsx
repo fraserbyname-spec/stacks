@@ -335,6 +335,13 @@ const handleBankDaily = () => {
           setLastRunPicks(prev)
           return prev
         })
+        // Count this run toward today's total
+        const todayKey = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0]
+        setTodayRuns(prev => {
+          const newVal = prev + 1
+          localStorage.setItem(`stacks_today_runs_${todayKey}`, String(newVal))
+          return newVal
+        })
         setLastRunType(hadBankOption ? 'busted-with-option' : 'busted-no-option')
         setGameState('dead')
       } else {
