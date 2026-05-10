@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const player_id = searchParams.get('player_id')
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   const { data: top10, error } = await supabase
     .from('daily_scores')

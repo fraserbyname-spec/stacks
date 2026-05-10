@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   }
 
   // Today's date in UTC YYYY-MM-DD format
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   const daily_only = body.daily_only === true
 

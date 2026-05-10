@@ -65,7 +65,7 @@ export default function DailyLeaderboard() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-[#1A2B3C] tracking-tight">Today&apos;s Best Stackers</h1>
           <p className="text-[#7F8C8D] text-sm mt-1">{todayDate}</p>
-          <p className="text-[#7F8C8D] text-xs mt-1">Refreshes UTC Midday</p>
+          <p className="text-[#7F8C8D] text-xs mt-1">Refreshes daily at midnight NZT</p>
         </div>
 
         {loading ? (
