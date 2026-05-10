@@ -43,21 +43,6 @@ export default function DailyLeaderboard() {
 
   const formatBalance = (n: number) => `$${n.toLocaleString()}`
 
-  const Row = ({ rank, player_name, balance, picks, highlight = false }: {
-    rank: number
-    player_name: string
-    balance: number
-    picks: number
-    highlight?: boolean
-  }) => (
-    <div className={`flex items-center gap-2 py-1 ${highlight ? 'font-semibold' : ''}`}>
-      <span className="text-[#7F8C8D] text-sm w-7 shrink-0 text-right">#{rank}</span>
-      <span className="text-[#1A2B3C] text-sm truncate flex-1 min-w-0">{player_name}</span>
-      <span className="text-[#1A2B3C] text-sm font-bold shrink-0">{formatBalance(balance)}</span>
-      <span className="text-[#7F8C8D] text-xs shrink-0 w-16 text-right">in {picks} picks</span>
-    </div>
-  )
-
   return (
     <main className="min-h-screen bg-[#F4F6F8] flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-sm w-full max-w-sm p-8 flex flex-col gap-6">
@@ -73,33 +58,39 @@ export default function DailyLeaderboard() {
         ) : top10.length === 0 ? (
           <p className="text-center text-[#7F8C8D] text-sm">No scores yet today. Be the first!</p>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-3">
             {top10.map((score, index) => (
-              <Row
-                key={score.id}
-                rank={index + 1}
-                player_name={score.player_name}
-                balance={score.balance}
-                picks={score.picks}
-              />
+              <div key={score.id} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-[#7F8C8D] text-sm w-6 text-right">#{index + 1}</span>
+                  <span className="text-[#1A2B3C] font-medium text-sm">{score.player_name}</span>
+                </div>
+                <div className="text-right">
+                  <p className="text-[#1A2B3C] font-bold text-sm">{formatBalance(score.balance)}</p>
+                  <p className="text-[#7F8C8D] text-xs">{score.picks} picks</p>
+                </div>
+              </div>
             ))}
 
             {playerRank && (
               <>
-                <div className="border-t border-[#F4F6F8] my-2" />
-                <Row
-                  rank={playerRank.rank}
-                  player_name={playerRank.player_name}
-                  balance={playerRank.balance}
-                  picks={playerRank.picks}
-                  highlight
-                />
+                <div className="border-t border-[#F4F6F8] my-1" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#7F8C8D] text-sm w-6 text-right">#{playerRank.rank}</span>
+                    <span className="text-[#1A2B3C] font-semibold text-sm">{playerRank.player_name}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[#1A2B3C] font-bold text-sm">{formatBalance(playerRank.balance)}</p>
+                    <p className="text-[#7F8C8D] text-xs">{playerRank.picks} picks</p>
+                  </div>
+                </div>
               </>
             )}
           </div>
         )}
 
-        <div className="border-t border-[#F4F6F8] pt-4 text-center space-y-2">
+        <div className="border-t border-[#F4F6F8] pt-4 text-center">
           <div className="flex justify-center gap-3">
             <a href="/leaderboard" className="text-[#3d5a80] text-sm font-semibold underline">World&apos;s Biggest Stackers</a>
             <span className="text-[#7F8C8D] text-sm">·</span>
