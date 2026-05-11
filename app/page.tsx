@@ -163,7 +163,7 @@ export default function Home() {
     setGamesPlayed(newGames)
     localStorage.setItem('stacks_games_v2', String(newGames))
     // Update today's stats
-    const todayKey = new Date().toISOString().split('T')[0]
+    const todayKey = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0]
     const newTodayRuns = todayRuns + 1
     setTodayRuns(newTodayRuns)
     localStorage.setItem(`stacks_today_runs_${todayKey}`, String(newTodayRuns))
@@ -208,7 +208,7 @@ const handleBankDaily = () => {
     setLastRunBalance(balance)
     setLastRunPicks(picks)
     setCanBankDaily(false)
-    const todayKey = new Date().toISOString().split('T')[0]
+    const todayKey = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0]
     const newTodayRuns = todayRuns + 1
     setTodayRuns(newTodayRuns)
     localStorage.setItem(`stacks_today_runs_${todayKey}`, String(newTodayRuns))
