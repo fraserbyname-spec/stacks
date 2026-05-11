@@ -496,7 +496,7 @@ const handleBankDaily = () => {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-[#1A2B3C] tracking-tight">STACKS</h1>
           <p className="text-[#7F8C8D] text-lg mt-1">
-            {hasPickedThisSession ? '1 bad tile hidden each round' : 'How much bank can you make?'}
+            {hasPickedThisSession ? 'Pick a tile. 4 are safe. 1 ends your run.' : 'How much bank can you make?'}
           </p>
         </div>
 
