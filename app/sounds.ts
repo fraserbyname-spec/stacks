@@ -154,6 +154,26 @@ export const playBalanceUpdate = () => {
   })
 }
 
+// Tick sound for tile cycle
+export const playTick = () => {
+  const c = getCtx()
+  const t = c.currentTime
+
+  const osc = c.createOscillator()
+  osc.type = 'sine'
+  osc.frequency.setValueAtTime(800, t)
+  osc.frequency.exponentialRampToValueAtTime(600, t + 0.03)
+
+  const gain = c.createGain()
+  gain.gain.setValueAtTime(0.15 * master, t)
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04)
+
+  osc.connect(gain)
+  gain.connect(c.destination)
+  osc.start(t)
+  osc.stop(t + 0.04)
+}
+
 // Quiet descending tone — run over
 export const playRunOver = () => {
   const c = getCtx()

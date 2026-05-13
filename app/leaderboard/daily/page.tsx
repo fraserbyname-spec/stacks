@@ -85,7 +85,7 @@ export default function DailyLeaderboard() {
                 </div>
                 <div className="text-right">
                   <p className="text-[#1A2B3C] font-bold text-sm">{formatBalance(score.balance)}</p>
-                  <p className="text-[#7F8C8D] text-xs">{score.picks} picks</p>
+                  <p className="text-[#7F8C8D] text-xs">{score.picks} taps</p>
                 </div>
               </div>
             ))}
@@ -100,7 +100,7 @@ export default function DailyLeaderboard() {
                   </div>
                   <div className="text-right">
                     <p className="text-[#1A2B3C] font-bold text-sm">{formatBalance(playerRank.balance)}</p>
-                    <p className="text-[#7F8C8D] text-xs">{playerRank.picks} picks</p>
+                    <p className="text-[#7F8C8D] text-xs">{playerRank.picks} taps</p>
                   </div>
                 </div>
               </>
