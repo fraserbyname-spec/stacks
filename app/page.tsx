@@ -1,18 +1,17 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { playTileTap, playPulseBeat, playTileRevealWin, playTileRevealLose, playBalanceUpdate, playRunOver } from './sounds'
+import { playTileTap, playTileRevealWin, playTileRevealLose, playBalanceUpdate, playRunOver } from './sounds'
 
-type GameState = 'idle' | 'playing' | 'pulsing' | 'revealing' | 'dead' | 'waiting'
+type GameState = 'idle' | 'playing' | 'dead' | 'waiting'
+
+type TileState = 'grey' | 'green' | 'red'
 
 export default function Home() {
   const [balance, setBalance] = useState(1)
   const [picks, setPicks] = useState(0)
   const [gameState, setGameState] = useState<GameState>('idle')
-  const [sessionId, setSessionId] = useState<string | null>(null)
-  const [selectedTile, setSelectedTile] = useState<number | null>(null)
-  const [revealedTiles, setRevealedTiles] = useState<(false | 'win' | 'lose')[]>(Array(5).fill(false))
-  const [pulseActive, setPulseActive] = useState(false)
+  const [tiles, setTiles] = useState<TileState[]>(Array(5).fill('grey'))
   const [playerName, setPlayerName] = useState('')
   const [nameInput, setNameInput] = useState('')
   const [showNameModal, setShowNameModal] = useState(false)
@@ -37,11 +36,19 @@ export default function Home() {
   const [todayBest, setTodayBest] = useState(0)
   const [todayPicks, setTodayPicks] = useState(0)
   const [todayRuns, setTodayRuns] = useState(0)
+  const [dwellTime, setDwellTime] = useState(900)
+  const [tileCount, setTileCount] = useState(5)
+  const cycleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+  const picksRef = useRef(0)
+  const dwellRef = useRef(900)
+  const tileCountRef = useRef(5)
+  const gameStateRef = useRef<GameState>('idle')
 
   const clearAllTimers = () => {
     timers.current.forEach(t => clearTimeout(t))
     timers.current = []
+    if (cycleRef.current) clearTimeout(cycleRef.current)
   }
 
   const addTimer = (fn: () => void, delay: number) => {
@@ -75,42 +82,97 @@ export default function Home() {
     if (bestP) setBestPicks(Number(bestP))
     if (games) setGamesPlayed(Number(games))
     if (played) setHasPlayedBefore(true)
+    if (!todayBestVal && pid) {
+      fetch(`/api/leaderboard/daily?player_id=${pid}`)
+        .then(r => r.json())
+        .then(data => {
+          const top10 = data.top10 || []
+          const playerInTop10 = top10.find((s: any) => s.player_id === pid)
+          const playerScore = playerInTop10 || data.playerRank
+          if (playerScore && playerScore.balance) {
+            setTodayBest(playerScore.balance)
+            setTodayPicks(playerScore.picks)
+            const key = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0]
+            localStorage.setItem(`stacks_today_best_${key}`, String(playerScore.balance))
+            localStorage.setItem(`stacks_today_picks_${key}`, String(playerScore.picks))
+          }
+        })
+        .catch(() => {})
+    }
     return () => clearAllTimers()
   }, [])
 
   useEffect(() => {
-    if (playerName && playerId && gameState === 'idle') newRound(1, 0, playerId)
+    if (playerName && playerId && gameState === 'idle') startRound(1, 0)
   }, [playerName, playerId])
 
-  const getSession = async (pid: string): Promise<string | null> => {
-    try {
-      const res = await fetch('/api/game', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ player_id: pid })
-      })
-      const data = await res.json()
-      return data.sessionId || null
-    } catch {
-      return null
-    }
+  // Keep refs in sync so cycle timer always has current values
+  useEffect(() => { picksRef.current = picks }, [picks])
+  useEffect(() => { dwellRef.current = dwellTime }, [dwellTime])
+  useEffect(() => { tileCountRef.current = tileCount }, [tileCount])
+  useEffect(() => { gameStateRef.current = gameState }, [gameState])
+
+  const getActiveTileConfig = (pickCount: number) => {
+    if (pickCount >= 31) return { total: 7, green: 1, red: 4 }
+    if (pickCount >= 21) return { total: 6, green: 1, red: 3 }
+    return { total: 5, green: 1, red: 2 }
   }
 
-  const newRound = async (currentBalance: number, currentPicks: number, pid?: string) => {
+  const generateTiles = (pickCount: number): TileState[] => {
+    const config = getActiveTileConfig(pickCount)
+    const tileArray: TileState[] = Array(config.total).fill('grey')
+    const positions = [...Array(config.total).keys()]
+
+    // Shuffle positions
+    for (let i = positions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [positions[i], positions[j]] = [positions[j], positions[i]]
+    }
+
+    // Assign green and red
+    tileArray[positions[0]] = 'green'
+    for (let i = 1; i <= config.red; i++) {
+      tileArray[positions[i]] = 'red'
+    }
+
+    return tileArray
+  }
+
+  const startCycle = (currentPicks: number, currentDwell: number) => {
+    if (cycleRef.current) clearTimeout(cycleRef.current)
+    if (gameStateRef.current !== 'playing') return
+
+    const newTiles = generateTiles(currentPicks)
+    const config = getActiveTileConfig(currentPicks)
+    setTiles(newTiles)
+    setTileCount(config.total)
+
+    cycleRef.current = setTimeout(() => {
+      if (gameStateRef.current === 'playing') {
+        startCycle(picksRef.current, dwellRef.current)
+      }
+    }, currentDwell)
+  }
+
+  const startRound = (currentBalance: number, currentPicks: number) => {
     clearAllTimers()
-    setRevealedTiles(Array(5).fill(false))
-    setSelectedTile(null)
-    setPulseActive(false)
+    setBalance(currentBalance)
+    setPicks(currentPicks)
+    picksRef.current = currentPicks
+    const newDwell = Math.max(150, 900 - currentPicks * 25)
+    setDwellTime(newDwell)
+    dwellRef.current = newDwell
+    const config = getActiveTileConfig(currentPicks)
+    setTileCount(config.total)
+    tileCountRef.current = config.total
     setCanBank(false)
     setCanBankDaily(false)
     setHadBankOption(false)
     setHadDailyBankOption(false)
-    setBalance(currentBalance)
-    setPicks(currentPicks)
     setGameState('playing')
-    const sid = await getSession(pid || playerId)
-    setSessionId(sid)
-    triggerShimmer()
+    gameStateRef.current = 'playing'
+    setShimmerKey(k => k + 1)
+    setTimeout(() => startCycle(currentPicks, newDwell), 100)
   }
 
   const saveName = () => {
@@ -121,27 +183,16 @@ export default function Home() {
     setShowNameModal(false)
   }
 
-  const startNewGame = async () => {
+  const startNewGame = () => {
     setShowShareButton(false)
-    setCanBank(false)
-    setCanBankDaily(false)
-    setHadBankOption(false)
-    setHadDailyBankOption(false)
     setShowBankSuccess(false)
-    clearAllTimers()
-    setRevealedTiles(Array(5).fill(false))
-    setSelectedTile(null)
-    setPulseActive(false)
-    setBalance(1)
-    setPicks(0)
-    setGameState('playing')
-    const sid = await getSession(playerId)
-    setSessionId(sid)
-    triggerShimmer()
+    setHasPickedThisSession(true)
+    startRound(1, 0)
   }
 
   const handleBank = () => {
     clearAllTimers()
+    gameStateRef.current = 'waiting'
     const isNewBest = balance > bestBalance
     if (isNewBest) {
       setBestBalance(balance)
@@ -152,17 +203,11 @@ export default function Home() {
     fetch('/api/scores', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        player_name: playerName,
-        balance,
-        picks,
-        player_id: playerId
-      })
+      body: JSON.stringify({ player_name: playerName, balance, picks, player_id: playerId })
     })
     const newGames = gamesPlayed + 1
     setGamesPlayed(newGames)
     localStorage.setItem('stacks_games_v2', String(newGames))
-    // Update today's stats
     const todayKey = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0]
     const newTodayRuns = todayRuns + 1
     setTodayRuns(newTodayRuns)
@@ -185,20 +230,16 @@ export default function Home() {
       setBankSuccessMessage('Stack banked!')
     }
     setShowBankSuccess(true)
+    setGameState('waiting')
   }
 
-const handleBankDaily = () => {
+  const handleBankDaily = () => {
     clearAllTimers()
+    gameStateRef.current = 'waiting'
     fetch('/api/scores', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        player_name: playerName,
-        balance,
-        picks,
-        player_id: playerId,
-        daily_only: true
-      })
+      body: JSON.stringify({ player_name: playerName, balance, picks, player_id: playerId, daily_only: true })
     })
     const newGames = gamesPlayed + 1
     setGamesPlayed(newGames)
@@ -221,162 +262,83 @@ const handleBankDaily = () => {
     setLastRunType('banked')
     setBankSuccessMessage('Added to today\'s leaderboard!')
     setShowBankSuccess(true)
+    setGameState('waiting')
   }
 
-  const triggerShimmer = () => {
-    setShimmerKey(k => k + 1)
-  }
-
-  const pickTile = async (index: number) => {
-    if (gameState !== 'playing' || !sessionId) return
-    const capturedSessionId = sessionId
-    const capturedPlayerId = playerId
-    playTileTap()
+  const tapTile = (index: number, tileState: TileState) => {
+    if (gameState !== 'playing') return
+    if (tileState === 'grey') return // grey taps do nothing
     setHasPickedThisSession(true)
-    clearAllTimers()
-    setSelectedTile(index)
-    setGameState('pulsing')
 
-    const serverPromise = fetch('/api/game/reveal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: capturedSessionId,
-        chosen_tile: index,
-        player_id: capturedPlayerId
-      })
-    }).then(r => r.json()).catch(() => null)
+    if (tileState === 'green') {
+      // Success
+      playTileRevealWin(index)
+      clearAllTimers()
+      const newBalance = balance * 2
+      const newPicks = picks + 1
+      const newDwell = Math.max(150, 900 - newPicks * 25)
+      setBalance(newBalance)
+      setBalancePulse(k => k + 1)
+      playBalanceUpdate()
+      setPicks(newPicks)
+      picksRef.current = newPicks
+      setDwellTime(newDwell)
+      dwellRef.current = newDwell
 
-    let pulseCount = 0
-    const doPulse = () => {
-      setPulseActive(true)
-      playPulseBeat(pulseCount)
-      addTimer(() => {
-        setPulseActive(false)
-        pulseCount++
-        if (pulseCount < 1) {
-          addTimer(doPulse, 150)
-        } else {
-          revealFromServer(index, capturedSessionId, capturedPlayerId, serverPromise)
-        }
-      }, 300)
-    }
-    doPulse()
-  }
-
-  const revealFromServer = async (chosenIndex: number, lockedSessionId: string, lockedPlayerId: string, prefiredPromise?: Promise<any>) => {
-    setGameState('revealing')
-    setRevealedTiles(Array(5).fill(false))
-
-    const revealOrder = chosenIndex <= 2 ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4]
-    const SPEED = 200
-    const totalRevealTime = 4 * SPEED
-
-    let isLose = false
-    let losingTile = -1
-    try {
-      const data = prefiredPromise ? await prefiredPromise : await fetch('/api/game/reveal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: lockedSessionId,
-          chosen_tile: chosenIndex,
-          player_id: lockedPlayerId
-        })
-      }).then(r => r.json())
-      if (typeof data.isLose === 'boolean' && typeof data.losingTile === 'number') {
-        isLose = data.isLose
-        losingTile = data.losingTile
-      } else {
-        isLose = false
-        losingTile = Math.floor(Math.random() * 5)
-        while (losingTile === chosenIndex) {
-          losingTile = Math.floor(Math.random() * 5)
-        }
+      // Check bank conditions
+      if (newBalance > bestBalance) {
+        setCanBank(true)
+        setCanBankDaily(false)
+        setHadBankOption(true)
+      } else if (newBalance >= 32 && newBalance > todayBest) {
+        setCanBankDaily(true)
+        setHadDailyBankOption(true)
       }
-    } catch {
-      isLose = false
-      losingTile = Math.floor(Math.random() * 5)
-      while (losingTile === chosenIndex) {
-        losingTile = Math.floor(Math.random() * 5)
-      }
-    }
 
-    revealOrder.forEach((ti, step) => {
-      addTimer(() => {
-        setRevealedTiles(prev => {
-          const next = [...prev] as (false | 'win' | 'lose')[]
-          next[ti] = ti === losingTile ? 'lose' : 'win'
-          return next
-        })
-        if (ti === losingTile) {
-          playTileRevealLose()
-        } else {
-          playTileRevealWin(ti)
+      // Brief pause then continue cycling
+      setTimeout(() => {
+        if (gameStateRef.current === 'playing') {
+          startCycle(newPicks, newDwell)
+          setShimmerKey(k => k + 1)
         }
-      }, step * SPEED)
-    })
+      }, 400)
 
-    addTimer(() => {
-      if (isLose) {
-        setGamesPlayed(prev => {
-          const newGames = prev + 1
-          localStorage.setItem('stacks_games_v2', String(newGames))
-          return newGames
-        })
-        localStorage.setItem('stacks_played_before_v2', 'true')
-        setHasPlayedBefore(true)
+    } else if (tileState === 'red') {
+      // Bust
+      playTileTap()
+      clearAllTimers()
+      gameStateRef.current = 'dead'
+
+      setTimeout(() => {
+        playTileRevealLose()
         playRunOver()
-        setBalance(prev => {
-          setLastRunBalance(prev)
-          if (prev >= 32) setShowShareButton(true)
-          return prev
-        })
-        setPicks(prev => {
-          setLastRunPicks(prev)
-          return prev
-        })
-        // Count this run toward today's total
-        const todayKey = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0]
-        setTodayRuns(prev => {
-          const newVal = prev + 1
-          localStorage.setItem(`stacks_today_runs_${todayKey}`, String(newVal))
-          return newVal
-        })
-        setLastRunType(hadBankOption ? 'busted-with-option' : 'busted-no-option')
-        setGameState('dead')
-      } else {
-        setBalance(prev => {
-          const newBalance = prev * 2
-          if (newBalance > bestBalance) {
-            setCanBank(true)
-            setCanBankDaily(false)
-            setHadBankOption(true)
-          } else if (newBalance >= 32 && newBalance > todayBest) {
-            setCanBankDaily(true)
-            setHadDailyBankOption(true)
-          }
-          return newBalance
-        })
-        playBalanceUpdate()
-        setBalancePulse(k => k + 1)
-        setPicks(prev => prev + 1)
-        addTimer(async () => {
-          setRevealedTiles(Array(5).fill(false))
-          setSelectedTile(null)
-          setPulseActive(false)
-          setGameState('playing')
-          triggerShimmer()
-          getSession(playerId).then(sid => setSessionId(sid))
-        }, 300)
-      }
-    }, totalRevealTime + SPEED)
+      }, 100)
+
+      setGamesPlayed(prev => {
+        const newGames = prev + 1
+        localStorage.setItem('stacks_games_v2', String(newGames))
+        return newGames
+      })
+      const todayKey = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0]
+      setTodayRuns(prev => {
+        const newVal = prev + 1
+        localStorage.setItem(`stacks_today_runs_${todayKey}`, String(newVal))
+        return newVal
+      })
+      localStorage.setItem('stacks_played_before_v2', 'true')
+      setHasPlayedBefore(true)
+      setLastRunBalance(balance)
+      setLastRunPicks(picks)
+      if (balance >= 32) setShowShareButton(true)
+      setLastRunType(hadBankOption ? 'busted-with-option' : hadDailyBankOption ? 'busted-with-option' : 'busted-no-option')
+      setGameState('dead')
+    }
   }
 
   const formatBalance = (n: number) => {
     if (n >= 1000000000000000) {
       const q = n / 1000000000000000
-      return `$${q % 1 === 0 ? q.toFixed(0) : q.toFixed(1)}Quadrillion`
+      return `$${q % 1 === 0 ? q.toFixed(0) : q.toFixed(1)}Q`
     }
     if (n >= 1000000000000) {
       const t = n / 1000000000000
@@ -408,7 +370,7 @@ const handleBankDaily = () => {
     }
   }
 
-  const activeGame = (['playing', 'pulsing', 'revealing'] as GameState[]).includes(gameState)
+  const activeGame = gameState === 'playing'
 
   return (
     <main className="min-h-screen bg-[#F4F6F8] flex flex-col items-center justify-start pt-6 px-4 pb-16">
@@ -496,7 +458,7 @@ const handleBankDaily = () => {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-[#1A2B3C] tracking-tight">STACKS</h1>
           <p className="text-[#7F8C8D] text-lg mt-1">
-            {hasPickedThisSession ? 'Pick a tile. 4 are safe. 1 ends your run.' : 'How much bank can you make?'}
+            {hasPickedThisSession ? '1 green tile hidden each round' : 'How much bank can you make?'}
           </p>
         </div>
 
@@ -516,39 +478,25 @@ const handleBankDaily = () => {
 
         {/* Tiles */}
         <div className="flex gap-2 w-full">
-          {Array(5).fill(null).map((_, i) => {
-            const state = revealedTiles[i]
-            const isSelected = selectedTile === i
-            const isPulseOn = gameState === 'pulsing' && isSelected && pulseActive
-            const isPulseOff = gameState === 'pulsing' && isSelected && !pulseActive
+          {tiles.map((tileState, i) => {
+            let bg = 'bg-[#B0BEC5] shadow-inner'
+            if (tileState === 'green') bg = 'bg-[#2ECC71] shadow-md'
+            else if (tileState === 'red') bg = 'bg-[#E74C3C] shadow-md'
 
-            // Easter egg tile colours based on balance
-            let defaultBg = 'bg-[#B0BEC5] hover:bg-[#9AABB5] shadow-inner'
-            if (balance >= 500000001) defaultBg = 'bg-[#efbd0f] hover:bg-[#d4a800] shadow-inner'
-            else if (balance >= 1000001) defaultBg = 'bg-[#09cdec] hover:bg-[#08b8d4] shadow-inner'
-
-            let bg = defaultBg
-            if (state === 'win') bg = 'bg-[#2ECC71]'
-            else if (state === 'lose') bg = 'bg-[#E74C3C]'
-            else if (isPulseOn) bg = 'bg-[#1A3A5A]'
-            else if (isPulseOff) bg = 'bg-[#6A9ABB]'
-
-            const ring = (isPulseOn || isPulseOff) ? 'ring-4 ring-[#1A3A5A] ring-offset-1' : ''
             const cursor = gameState === 'playing' ? 'cursor-pointer active:scale-95' : ''
 
             return (
               <button
-                key={`${shimmerKey}-${i}`}
-                onClick={() => pickTile(i)}
+                key={i}
+                onClick={() => tapTile(i, tileState)}
                 disabled={gameState !== 'playing'}
-                style={{ animationDelay: `${i * 80}ms` }}
-                className={`flex-1 h-16 rounded-xl transition-all duration-150 ${bg} ${ring} ${cursor} ${gameState === 'playing' ? 'animate-shimmer-tile' : ''}`}
+                className={`flex-1 h-16 rounded-xl transition-all duration-150 ${bg} ${cursor}`}
               />
             )
           })}
         </div>
 
-        {/* Bank buttons — always reserves space so tiles never shift */}
+        {/* Bank buttons */}
         <div className="w-full">
           {canBank && gameState === 'playing' ? (
             <button
@@ -575,10 +523,9 @@ const handleBankDaily = () => {
         {!hasPickedThisSession && gameState === 'playing' && (
           <div className="text-center text-base text-[#7F8C8D] leading-relaxed space-y-1">
             <p className="font-bold text-[#1A2B3C] text-lg">Bank your Stack before you bust!</p>
-            <p>Choose a tile.</p>
-            <p>4 are <span className="text-[#27AE60] font-semibold">green</span>. 1 is <span className="text-[#E74C3C] font-semibold">red</span>.</p>
-            <p><span className="text-[#27AE60] font-semibold">Green</span> = double your money.</p>
-            <p><span className="text-[#E74C3C] font-semibold">Red</span> = game over.</p>
+            <p>Tap the <span className="text-[#27AE60] font-semibold">green</span> tile to double your money.</p>
+            <p>Tap a <span className="text-[#E74C3C] font-semibold">red</span> tile and your run is over.</p>
+            <p>Tap <span className="text-[#7F8C8D] font-semibold">grey</span> tiles to wait.</p>
           </div>
         )}
 
@@ -619,7 +566,8 @@ const handleBankDaily = () => {
         </div>
 
       </div>
-    {/* Ad unit placeholder — 320x50 mobile banner */}
+
+      {/* Ad unit placeholder */}
       <div className="fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-[#E0E0E0] flex items-center justify-center">
         <p className="text-[#CBD2D9] text-xs">Advertisement</p>
       </div>
