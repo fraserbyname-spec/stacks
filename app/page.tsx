@@ -60,7 +60,7 @@ export default function Home() {
             onClick={() => router.push('/original')}
             className="bg-white rounded-2xl p-6 w-full text-center shadow-sm border-2 border-[#1A3A5A] active:scale-95 hover:shadow-md cursor-pointer transition-all duration-150"
           >
-            <p className="text-[#1A2B3C] text-xl font-bold mb-2">PICK</p>
+            <p className="text-[#1A2B3C] text-xl font-bold mb-2">THE PICK</p>
 <p className="text-[#7F8C8D] text-lg">
   Slow and Risky.
 </p>
@@ -70,7 +70,7 @@ export default function Home() {
             onClick={() => router.push('/play')}
             className="bg-white rounded-2xl p-6 w-full text-center shadow-sm border-2 border-[#2ECC71] active:scale-95 hover:shadow-md cursor-pointer transition-all duration-150"
           >
-            <p className="text-[#1A2B3C] text-xl font-bold mb-2">TAP</p>
+            <p className="text-[#1A2B3C] text-xl font-bold mb-2">THE TAP</p>
 <p className="text-[#7F8C8D] text-lg">
   Fast and Frantic.
 </p>
