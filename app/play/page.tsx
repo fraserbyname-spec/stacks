@@ -73,6 +73,7 @@ export default function PlayGame() {
   const [todayTaps, setTodayTaps] = useState(0)
   const [todayRuns, setTodayRuns] = useState(0)
   const [selectionTimer, setSelectionTimer] = useState(5)
+  const [timedOut, setTimedOut] = useState(false)
   const cycleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const tapsRef = useRef(0)
   const gameStateRef = useRef<GameState>('ready')
@@ -144,8 +145,8 @@ export default function PlayGame() {
     tappedThisCycle.current = false
     playTick()
     cycleCountRef.current += 1
-    const remaining = 5 - cycleCountRef.current
-    setSelectionTimer(Math.max(0, remaining))
+    const remaining = 5 - (cycleCountRef.current - 1)
+    setSelectionTimer(Math.max(1, remaining))
     if (cycleCountRef.current > 5) {
       gameStateRef.current = 'dead'
       playRunOver()
@@ -153,6 +154,7 @@ export default function PlayGame() {
       setLastRunBalance(balance)
       setLastRunTaps(tapsRef.current)
       if (balance >= 32) setShowShareButton(true)
+      setTimedOut(true)
       setGameState('dead')
       return
     }
@@ -173,6 +175,7 @@ export default function PlayGame() {
     cycleCountRef.current = 0
     noGreenUsedInGroupRef.current = false
     setSelectionTimer(5)
+    setTimedOut(false)
     setGameState('playing')
     gameStateRef.current = 'playing'
     setTimeout(() => startCycle(currentTaps, Array(9).fill('grey')), 100)
@@ -274,9 +277,12 @@ export default function PlayGame() {
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}
           onClick={() => setGameState('waiting')}>
           <div className="text-center">
-            <p className="text-white/70 text-4xl font-bold tracking-widest uppercase mb-4">Run over</p>
+            <p className="text-white/70 text-4xl font-bold tracking-widest uppercase mb-4">
+              {timedOut ? 'BUST' : 'Run over'}
+            </p>
             <p className={`text-white font-bold tabular-nums ${formatBalance(balance).length > 8 ? 'text-3xl' : 'text-5xl'}`}>{formatBalance(balance)}</p>
             <p className="text-white/50 text-xl mt-4">{taps} tap{taps !== 1 ? 's' : ''}</p>
+            {timedOut && <p className="text-white/60 text-base mt-2">Ran out of time.</p>}
             <p className="text-white/30 text-base mt-8">tap anywhere to continue</p>
           </div>
         </div>
@@ -307,7 +313,7 @@ export default function PlayGame() {
           </p>
           {gameState === 'playing' && (
             <p className={`text-sm mt-2 font-semibold ${timerColour}`}>
-              Selection Timer: {selectionTimer === 0 ? 'BUST' : selectionTimer}
+              Selection Timer: {selectionTimer}
             </p>
           )}
         </div>
