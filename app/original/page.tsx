@@ -14,7 +14,7 @@ export default function OriginalGame() {
   const [revealedTiles, setRevealedTiles] = useState<(false | 'win' | 'lose')[]>(Array(5).fill(false))
   const [pulseActive, setPulseActive] = useState(false)
   const [playerName, setPlayerName] = useState('')
-  const [bestBalance, setBestBalance] = useState(1)
+  const [bestBalance, setBestBalance] = useState(0)
   const [bestPicks, setBestPicks] = useState(0)
   const [gamesPlayed, setGamesPlayed] = useState(0)
   const [hasPickedThisSession, setHasPickedThisSession] = useState(false)
@@ -384,14 +384,19 @@ export default function OriginalGame() {
 
         {/* Home icon */}
         <div className="w-full flex justify-between items-center">
-          <a href="/" className="text-[#7F8C8D] text-sm">🏠 Menu</a>
+          <a href="/" className="text-[#7F8C8D]">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+              <path d="M9 21V12h6v9"/>
+            </svg>
+          </a>
           <h1 className="text-2xl font-bold text-[#1A2B3C] tracking-tight">STACKS</h1>
           <span className="text-sm text-transparent">Menu</span>
         </div>
 
         <div className="text-center">
           <p className="text-[#7F8C8D] text-base mt-1">
-            {hasPickedThisSession ? '1 bad tile hidden each round' : 'How much bank can you make?'}
+            {hasPickedThisSession ? '1 bad tile hidden each round' : 'Pick a tile. Hope it\'s green.'}
           </p>
         </div>
 

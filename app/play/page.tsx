@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { playTileRevealWin, playTileRevealLose, playBalanceUpdate, playRunOver, playTick } from '../sounds'
 
-type GameState = 'idle' | 'playing' | 'dead' | 'waiting'
+type GameState = 'idle' | 'ready' | 'playing' | 'dead' | 'waiting'
 type TileState = 'grey' | 'green' | 'red'
 
 const STAGES = [
@@ -29,34 +29,20 @@ const getDwell = (pick: number): number => {
 
 const generateTiles = (pick: number, prevTiles: TileState[], noGreenThisCycle: boolean): TileState[] => {
   const stage = getStage(pick)
-  const total = 9
   let colours: TileState[]
-
   if (noGreenThisCycle) {
-    // Replace green tiles with grey, keep red count
-    colours = [
-      ...Array(stage.green + stage.grey).fill('grey'),
-      ...Array(stage.red).fill('red'),
-    ]
+    colours = [...Array(stage.green + stage.grey).fill('grey'), ...Array(stage.red).fill('red')]
   } else {
-    colours = [
-      ...Array(stage.green).fill('green'),
-      ...Array(stage.grey).fill('grey'),
-      ...Array(stage.red).fill('red'),
-    ]
+    colours = [...Array(stage.green).fill('green'), ...Array(stage.grey).fill('grey'), ...Array(stage.red).fill('red')]
   }
-
-  // Shuffle
   for (let i = colours.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [colours[i], colours[j]] = [colours[j], colours[i]]
   }
-
-  // Ensure every tile moves to a new position (max 20 attempts)
   let attempts = 0
   while (attempts < 20) {
     let allMoved = true
-    for (let i = 0; i < total; i++) {
+    for (let i = 0; i < 9; i++) {
       if (colours[i] === prevTiles[i]) { allMoved = false; break }
     }
     if (allMoved) break
@@ -66,20 +52,18 @@ const generateTiles = (pick: number, prevTiles: TileState[], noGreenThisCycle: b
     }
     attempts++
   }
-
   return colours
 }
 
 export default function PlayGame() {
   const [balance, setBalance] = useState(1)
   const [taps, setTaps] = useState(0)
-  const [gameState, setGameState] = useState<GameState>('idle')
+  const [gameState, setGameState] = useState<GameState>('ready')
   const [tiles, setTiles] = useState<TileState[]>(Array(9).fill('grey'))
   const [playerName, setPlayerName] = useState('')
   const [bestBalance, setBestBalance] = useState(1)
   const [bestTaps, setBestTaps] = useState(0)
   const [gamesPlayed, setGamesPlayed] = useState(0)
-  const [hasStartedSession, setHasStartedSession] = useState(false)
   const [showShareButton, setShowShareButton] = useState(false)
   const [lastRunBalance, setLastRunBalance] = useState(0)
   const [lastRunTaps, setLastRunTaps] = useState(0)
@@ -88,10 +72,10 @@ export default function PlayGame() {
   const [todayBest, setTodayBest] = useState(0)
   const [todayTaps, setTodayTaps] = useState(0)
   const [todayRuns, setTodayRuns] = useState(0)
-  const [timeoutWarning, setTimeoutWarning] = useState(false)
+  const [selectionTimer, setSelectionTimer] = useState(5)
   const cycleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const tapsRef = useRef(0)
-  const gameStateRef = useRef<GameState>('idle')
+  const gameStateRef = useRef<GameState>('ready')
   const tilesRef = useRef<TileState[]>(Array(9).fill('grey'))
   const tappedThisCycle = useRef(false)
   const cycleCountRef = useRef(0)
@@ -114,10 +98,7 @@ export default function PlayGame() {
     if (todayTapsVal) setTodayTaps(Number(todayTapsVal))
     if (todayRunsVal) setTodayRuns(Number(todayRunsVal))
     let pid = localStorage.getItem('stacks_player_id_v2')
-    if (!pid) {
-      pid = Math.random().toString(36).slice(2)
-      localStorage.setItem('stacks_player_id_v2', pid)
-    }
+    if (!pid) { pid = Math.random().toString(36).slice(2); localStorage.setItem('stacks_player_id_v2', pid) }
     setPlayerId(pid)
     if (name) setPlayerName(name)
     if (best) setBestBalance(Number(best))
@@ -143,18 +124,12 @@ export default function PlayGame() {
     return () => clearCycle()
   }, [])
 
-  useEffect(() => {
-    if (playerName && playerId && gameState === 'idle') startRound(1, 0)
-  }, [playerName, playerId])
-
   useEffect(() => { tapsRef.current = taps }, [taps])
   useEffect(() => { gameStateRef.current = gameState }, [gameState])
 
   const startCycle = (currentTaps: number, prevTiles: TileState[]) => {
     clearCycle()
     if (gameStateRef.current !== 'playing') return
-
-    // Determine if this cycle should have no green
     const stage = getStage(currentTaps)
     let noGreenThisCycle = false
     if (stage.noGreenChance > 0 && !noGreenUsedInGroupRef.current) {
@@ -163,20 +138,14 @@ export default function PlayGame() {
         noGreenUsedInGroupRef.current = true
       }
     }
-
     const newTiles = generateTiles(currentTaps, prevTiles, noGreenThisCycle)
     setTiles(newTiles)
     tilesRef.current = newTiles
     tappedThisCycle.current = false
     playTick()
-
-    // Track cycle count for timeout
     cycleCountRef.current += 1
-    if (cycleCountRef.current >= 5) {
-      setTimeoutWarning(true)
-    }
-
-    // Timeout after 5 cycles without a tap
+    const remaining = 5 - cycleCountRef.current
+    setSelectionTimer(Math.max(0, remaining))
     if (cycleCountRef.current > 5) {
       gameStateRef.current = 'dead'
       playRunOver()
@@ -187,12 +156,9 @@ export default function PlayGame() {
       setGameState('dead')
       return
     }
-
     const dwell = getDwell(currentTaps)
     cycleRef.current = setTimeout(() => {
-      if (gameStateRef.current === 'playing') {
-        startCycle(tapsRef.current, tilesRef.current)
-      }
+      if (gameStateRef.current === 'playing') startCycle(tapsRef.current, tilesRef.current)
     }, dwell)
   }
 
@@ -206,7 +172,7 @@ export default function PlayGame() {
     tappedThisCycle.current = false
     cycleCountRef.current = 0
     noGreenUsedInGroupRef.current = false
-    setTimeoutWarning(false)
+    setSelectionTimer(5)
     setGameState('playing')
     gameStateRef.current = 'playing'
     setTimeout(() => startCycle(currentTaps, Array(9).fill('grey')), 100)
@@ -214,7 +180,6 @@ export default function PlayGame() {
 
   const startNewGame = () => {
     setShowShareButton(false)
-    setHasStartedSession(true)
     startRound(1, 0)
   }
 
@@ -253,7 +218,6 @@ export default function PlayGame() {
     if (tileState === 'grey') return
     if (tappedThisCycle.current) return
     tappedThisCycle.current = true
-    setHasStartedSession(true)
 
     if (tileState === 'green') {
       playTileRevealWin(index)
@@ -267,13 +231,10 @@ export default function PlayGame() {
       tapsRef.current = newTaps
       cycleCountRef.current = 0
       noGreenUsedInGroupRef.current = false
-      setTimeoutWarning(false)
+      setSelectionTimer(5)
       setTimeout(() => {
-        if (gameStateRef.current === 'playing') {
-          startCycle(newTaps, tilesRef.current)
-        }
+        if (gameStateRef.current === 'playing') startCycle(newTaps, tilesRef.current)
       }, 300)
-
     } else if (tileState === 'red') {
       clearCycle()
       gameStateRef.current = 'dead'
@@ -295,12 +256,14 @@ export default function PlayGame() {
     return `$${n.toLocaleString()}`
   }
 
-  const shareText = `I Stacked ${formatBalance(lastRunBalance)}\nOn the tap the tile challenge.\n${lastRunTaps} taps 💸\n\nhttps://stacksgame.app`
+  const shareText = `I Stacked ${formatBalance(lastRunBalance)}\nOn the Reaction challenge.\n${lastRunTaps} taps 💸\n\nhttps://stacksgame.app`
 
   const handleShare = () => {
     if (navigator.share) navigator.share({ text: shareText })
     else { navigator.clipboard.writeText(shareText); alert('Copied!') }
   }
+
+  const timerColour = selectionTimer <= 2 ? 'text-[#E74C3C]' : selectionTimer <= 3 ? 'text-[#F5C518]' : 'text-[#7F8C8D]'
 
   return (
     <main className="min-h-screen bg-[#F4F6F8] flex flex-col items-center justify-start pt-6 px-4 pb-16">
@@ -312,35 +275,39 @@ export default function PlayGame() {
           onClick={() => setGameState('waiting')}>
           <div className="text-center">
             <p className="text-white/70 text-4xl font-bold tracking-widest uppercase mb-4">Run over</p>
-            <p className={`text-white font-bold tabular-nums ${formatBalance(balance).length > 12 ? 'text-2xl' : formatBalance(balance).length > 11 ? 'text-3xl' : 'text-5xl'}`}>{formatBalance(balance)}</p>
+            <p className={`text-white font-bold tabular-nums ${formatBalance(balance).length > 8 ? 'text-3xl' : 'text-5xl'}`}>{formatBalance(balance)}</p>
             <p className="text-white/50 text-xl mt-4">{taps} tap{taps !== 1 ? 's' : ''}</p>
             <p className="text-white/30 text-base mt-8">tap anywhere to continue</p>
           </div>
         </div>
       )}
 
-      {/* Game Card */}
       <div className="bg-white rounded-3xl shadow-sm w-full max-w-sm p-8 flex flex-col items-center gap-6">
 
-        {/* Home icon */}
+        {/* Header */}
         <div className="w-full flex justify-between items-center">
-          <a href="/" className="text-[#7F8C8D] text-sm">🏠 Menu</a>
+          <a href="/" className="text-[#7F8C8D]">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+              <path d="M9 21V12h6v9"/>
+            </svg>
+          </a>
           <h1 className="text-2xl font-bold text-[#1A2B3C] tracking-tight">STACKS</h1>
-          <span className="text-sm text-transparent">Menu</span>
+          <span className="w-5" />
         </div>
 
+        <p className="text-[#7F8C8D] text-base text-center">
+          {gameState === 'playing' ? 'Make each tap within 5 tile changes.' : 'How much bank can you make?'}
+        </p>
+
+        {/* Balance */}
         <div className="text-center">
-          <p className="text-[#7F8C8D] text-base mt-1">
-            {hasStartedSession ? 'Tap a green tile before time runs out' : 'How much bank can you make?'}
+          <p key={balancePulse} className={`font-bold text-[#1A2B3C] tabular-nums ${formatBalance(balance).length > 8 ? 'text-4xl' : 'text-6xl'} ${balancePulse > 0 ? 'animate-balance-pulse' : ''}`}>
+            {formatBalance(balance)}
           </p>
-        </div>
-
-        <div className="text-center">
-          <p key={balancePulse} className={`font-bold text-[#1A2B3C] tabular-nums ${formatBalance(balance).length > 12 ? 'text-3xl' : formatBalance(balance).length > 11 ? 'text-4xl' : 'text-6xl'} ${balancePulse > 0 ? 'animate-balance-pulse' : ''}`}>{formatBalance(balance)}</p>
           {gameState === 'playing' && (
-            <p className="text-[#7F8C8D] text-sm mt-2">
-              Tap #{taps + 1}
-              {timeoutWarning && <span className="text-[#E74C3C] ml-2">— tap now!</span>}
+            <p className={`text-sm mt-2 font-semibold ${timerColour}`}>
+              Selection Timer: {selectionTimer === 0 ? 'BUST' : selectionTimer}
             </p>
           )}
         </div>
@@ -353,14 +320,15 @@ export default function PlayGame() {
             else if (tileState === 'red') bg = 'bg-[#E74C3C] shadow-md'
             const cursor = gameState === 'playing' ? 'cursor-pointer active:scale-95' : ''
             return (
-              <button key={i} onClick={() => tapTile(i, tileState)} disabled={gameState !== 'playing'}
+              <button key={i} onClick={() => tapTile(i, tileState)}
+                disabled={gameState !== 'playing'}
                 className={`h-20 rounded-xl transition-all duration-100 ${bg} ${cursor}`} />
             )
           })}
         </div>
 
-        {/* Instructions */}
-        {!hasStartedSession && gameState === 'playing' && (
+        {/* Instructions — shown in ready state */}
+        {gameState === 'ready' && (
           <div className="text-center text-base text-[#7F8C8D] leading-relaxed space-y-1">
             <p className="font-bold text-[#1A2B3C] text-lg">How to grow your Stack.</p>
             <p>Tap a <span className="text-[#27AE60] font-semibold">green</span> tile = double your money.</p>
@@ -369,16 +337,18 @@ export default function PlayGame() {
           </div>
         )}
 
-        {/* Play Again */}
-        {gameState === 'waiting' && (
-          <button onClick={startNewGame} className="w-full bg-[#2ECC71] text-white rounded-xl py-4 font-semibold text-base">
-            Play Again
+        {/* Play / Play Again */}
+        {(gameState === 'ready' || gameState === 'waiting') && (
+          <button onClick={startNewGame}
+            className="w-full bg-[#2ECC71] text-white rounded-xl py-4 font-semibold text-base">
+            {gameState === 'ready' ? 'Play' : 'Play Again'}
           </button>
         )}
 
         {/* Share */}
         {gameState === 'waiting' && showShareButton && (
-          <button onClick={handleShare} className="w-full bg-[#F5C518] text-[#1A2B3C] rounded-xl py-4 font-semibold text-base active:scale-95 active:bg-[#D4A800] transition-all duration-100">
+          <button onClick={handleShare}
+            className="w-full bg-[#F5C518] text-[#1A2B3C] rounded-xl py-4 font-semibold text-base active:scale-95 active:bg-[#D4A800] transition-all duration-100">
             Share Result
           </button>
         )}
@@ -400,6 +370,7 @@ export default function PlayGame() {
       <div className="fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-[#E0E0E0] flex items-center justify-center">
         <p className="text-[#CBD2D9] text-xs">Advertisement</p>
       </div>
+
     </main>
   )
 }
