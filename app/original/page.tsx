@@ -86,6 +86,23 @@ export default function OriginalGame() {
         })
         .catch(() => {})
     }
+    // Sync all-time best from leaderboard if local is empty
+    if (!best && pid) {
+      fetch(`/api/original-scores?player_id=${pid}`)
+        .then(r => r.json())
+        .then(data => {
+          const top10 = data.top10 || []
+          const playerInTop10 = top10.find((s: any) => s.player_id === pid)
+          const playerScore = playerInTop10 || data.playerRank
+          if (playerScore?.balance) {
+            setBestBalance(playerScore.balance)
+            setBestPicks(playerScore.picks)
+            localStorage.setItem('stacks_orig_best', String(playerScore.balance))
+            localStorage.setItem('stacks_orig_best_picks', String(playerScore.picks))
+          }
+        })
+        .catch(() => {})
+    }
     return () => clearAllTimers()
   }, [])
 
