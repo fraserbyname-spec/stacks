@@ -303,7 +303,7 @@ export default function PlayGame() {
         </div>
 
         <p className="text-[#7F8C8D] text-lg text-center">
-          {gameState === 'playing' ? '⏱ You have 5 tile changes to choose.' : 'How much bank can you make?'}
+          {gameState === 'playing' ? 'You have 5 tile changes to choose.' : 'How much bank can you make?'}
         </p>
 
         {/* Balance */}
@@ -339,7 +339,7 @@ export default function PlayGame() {
             <p className="font-bold text-[#1A2B3C] text-lg">Tap Safe Tiles.</p>
             <p>Tap <span className="text-[#27AE60] font-semibold">Green</span> = Double Your Stack.</p>
             <p>Tap <span className="text-[#E74C3C] font-semibold">Red</span> = Game Over.</p>
-            <p>Make each tap within 5 tile changes.</p>
+            <p>⏱ Make each tap within 5 tile changes.</p>
           </div>
         )}
 
