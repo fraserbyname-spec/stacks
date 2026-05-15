@@ -158,8 +158,9 @@ export default function PlayGame() {
     if (cycleCountRef.current > 5) {
       gameStateRef.current = 'dead'
       playRunOver()
-      submitScore(balance, tapsRef.current)
-      setLastRunBalance(balance)
+      const finalBalance = balance
+      submitScore(finalBalance, tapsRef.current)
+      setLastRunBalance(finalBalance)
       setLastRunTaps(tapsRef.current)
       if (balance >= 32) setShowShareButton(true)
       setTimedOut(true)
@@ -251,10 +252,12 @@ export default function PlayGame() {
       gameStateRef.current = 'dead'
       playTileRevealLose()
       setTimeout(() => playRunOver(), 100)
-      submitScore(balance, taps)
-      setLastRunBalance(balance)
-      setLastRunTaps(taps)
-      if (balance >= 32) setShowShareButton(true)
+      const finalBalance = balance
+      const finalTaps = taps
+      submitScore(finalBalance, finalTaps)
+      setLastRunBalance(finalBalance)
+      setLastRunTaps(finalTaps)
+      if (finalBalance >= 32) setShowShareButton(true)
       setGameState('dead')
     }
   }
