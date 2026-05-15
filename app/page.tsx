@@ -68,56 +68,36 @@ export default function Home() {
         <div className="flex flex-col gap-4 w-full">
 
           {/* Original */}
-          <button
-            onClick={() => router.push('/original')}
-            className="bg-white rounded-2xl p-6 w-full text-left shadow-sm border-2 border-transparent hover:border-[#1A3A5A] active:scale-98 transition-all duration-150"
-          >
-            <p className="text-[#1A2B3C] text-xl font-bold mb-1">Original</p>
-            <p className="text-[#7F8C8D] text-sm">Pick a tile. Hope it&apos;s green.</p>
+          <div className="bg-white rounded-2xl p-6 w-full shadow-sm">
+            <button
+              onClick={() => router.push('/original')}
+              className="w-full text-left"
+            >
+              <p className="text-[#1A2B3C] text-xl font-bold mb-1">Original</p>
+              <p className="text-[#7F8C8D] text-sm">Pick a tile. Hope it&apos;s green.</p>
+            </button>
             <div className="flex gap-2 mt-3">
-              
-                href="/leaderboard/original"
-                onClick={e => e.stopPropagation()}
-                className="text-[#3d5a80] text-xs font-semibold underline"
-              >
-                World&apos;s Best
-              </a>
+              <a href="/leaderboard/original" className="text-[#3d5a80] text-xs font-semibold underline">World&apos;s Best</a>
               <span className="text-[#CBD2D9] text-xs">·</span>
-              
-                href="/leaderboard/original/daily"
-                onClick={e => e.stopPropagation()}
-                className="text-[#3d5a80] text-xs font-semibold underline"
-              >
-                Today&apos;s Best
-              </a>
+              <a href="/leaderboard/original/daily" className="text-[#3d5a80] text-xs font-semibold underline">Today&apos;s Best</a>
             </div>
-          </button>
+          </div>
 
-          {/* New */}
-          <button
-            onClick={() => router.push('/play')}
-            className="bg-white rounded-2xl p-6 w-full text-left shadow-sm border-2 border-transparent hover:border-[#2ECC71] active:scale-98 transition-all duration-150"
-          >
-            <p className="text-[#1A2B3C] text-xl font-bold mb-1">Reaction</p>
-            <p className="text-[#7F8C8D] text-sm">Tap the green. Avoid the red.</p>
+          {/* Reaction */}
+          <div className="bg-white rounded-2xl p-6 w-full shadow-sm">
+            <button
+              onClick={() => router.push('/play')}
+              className="w-full text-left"
+            >
+              <p className="text-[#1A2B3C] text-xl font-bold mb-1">Reaction</p>
+              <p className="text-[#7F8C8D] text-sm">Tap the green. Avoid the red.</p>
+            </button>
             <div className="flex gap-2 mt-3">
-              
-                href="/leaderboard/play"
-                onClick={e => e.stopPropagation()}
-                className="text-[#3d5a80] text-xs font-semibold underline"
-              >
-                World&apos;s Best
-              </a>
+              <a href="/leaderboard/play" className="text-[#3d5a80] text-xs font-semibold underline">World&apos;s Best</a>
               <span className="text-[#CBD2D9] text-xs">·</span>
-              
-                href="/leaderboard/play/daily"
-                onClick={e => e.stopPropagation()}
-                className="text-[#3d5a80] text-xs font-semibold underline"
-              >
-                Today&apos;s Best
-              </a>
+              <a href="/leaderboard/play/daily" className="text-[#3d5a80] text-xs font-semibold underline">Today&apos;s Best</a>
             </div>
-          </button>
+          </div>
 
         </div>
 
