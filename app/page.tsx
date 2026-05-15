@@ -51,7 +51,7 @@ export default function Home() {
 
         <div className="text-center">
           <h1 className="text-5xl font-bold text-[#1A2B3C] tracking-tight">STACKS 💸</h1>
-          {playerName && <p className="text-[#7F8C8D] text-base mt-2">Hey {playerName} — choose your game.</p>}
+          {playerName && <p className="text-[#7F8C8D] text-lg mt-2">Hey {playerName} — choose your game.</p>}
         </div>
 
         <div className="flex flex-col gap-4 w-full">
@@ -60,20 +60,20 @@ export default function Home() {
             onClick={() => router.push('/original')}
             className="bg-white rounded-2xl p-6 w-full text-center shadow-sm border-2 border-[#1A3A5A] active:scale-95 transition-all duration-150"
           >
-            <p className="text-[#1A2B3C] text-xl font-bold mb-2">Original</p>
-            <p className="text-[#7F8C8D] text-sm">
-              Pick a tile. Hope it&apos;s <span className="text-[#27AE60] font-semibold">green</span>.
-            </p>
+            <p className="text-[#1A2B3C] text-xl font-bold mb-2">PICK</p>
+<p className="text-[#7F8C8D] text-sm">
+  Slow and Risky.
+</p>
           </button>
 
           <button
             onClick={() => router.push('/play')}
             className="bg-white rounded-2xl p-6 w-full text-center shadow-sm border-2 border-[#2ECC71] active:scale-95 transition-all duration-150"
           >
-            <p className="text-[#1A2B3C] text-xl font-bold mb-2">Reaction</p>
-            <p className="text-[#7F8C8D] text-sm">
-              Tap the <span className="text-[#27AE60] font-semibold">green</span>. Avoid the <span className="text-[#E74C3C] font-semibold">red</span>.
-            </p>
+            <p className="text-[#1A2B3C] text-xl font-bold mb-2">TAP</p>
+<p className="text-[#7F8C8D] text-sm">
+  Fast and Frantic.
+</p>
           </button>
 
         </div>

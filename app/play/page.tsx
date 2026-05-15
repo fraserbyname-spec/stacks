@@ -302,8 +302,8 @@ export default function PlayGame() {
           <span className="w-5" />
         </div>
 
-        <p className="text-[#7F8C8D] text-base text-center">
-          {gameState === 'playing' ? 'Make each tap within 5 tile changes.' : 'How much bank can you make?'}
+        <p className="text-[#7F8C8D] text-lg text-center">
+          {gameState === 'playing' ? '⏱ You have 5 tile changes to choose.' : 'How much bank can you make?'}
         </p>
 
         {/* Balance */}
@@ -336,9 +336,9 @@ export default function PlayGame() {
         {/* Instructions — shown in ready state */}
         {gameState === 'ready' && (
           <div className="text-center text-base text-[#7F8C8D] leading-relaxed space-y-1">
-            <p className="font-bold text-[#1A2B3C] text-lg">How to grow your Stack.</p>
-            <p>Tap a <span className="text-[#27AE60] font-semibold">green</span> tile = double your money.</p>
-            <p>Tap a <span className="text-[#E74C3C] font-semibold">red</span> tile = game over.</p>
+            <p className="font-bold text-[#1A2B3C] text-lg">Tap Safe Tiles.</p>
+            <p>Tap <span className="text-[#27AE60] font-semibold">Green</span> = Double Your Stack.</p>
+            <p>Tap <span className="text-[#E74C3C] font-semibold">Red</span> = Game Over.</p>
             <p>Make each tap within 5 tile changes.</p>
           </div>
         )}
