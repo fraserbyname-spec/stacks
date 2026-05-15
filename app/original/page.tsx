@@ -395,7 +395,7 @@ export default function OriginalGame() {
         </div>
 
         <div className="text-center">
-          <p className="text-[#7F8C8D] text-base mt-1">
+          <p className="text-[#7F8C8D] text-lg mt-1">
             {hasPickedThisSession ? '1 bad tile hidden each round' : 'Pick safe tiles. Grow your stack.'}
           </p>
         </div>

@@ -61,7 +61,7 @@ export default function Home() {
             className="bg-white rounded-2xl p-6 w-full text-center shadow-sm border-2 border-[#1A3A5A] active:scale-95 transition-all duration-150"
           >
             <p className="text-[#1A2B3C] text-xl font-bold mb-2">PICK</p>
-<p className="text-[#7F8C8D] text-sm">
+<p className="text-[#7F8C8D] text-lg">
   Slow and Risky.
 </p>
           </button>
@@ -71,7 +71,7 @@ export default function Home() {
             className="bg-white rounded-2xl p-6 w-full text-center shadow-sm border-2 border-[#2ECC71] active:scale-95 transition-all duration-150"
           >
             <p className="text-[#1A2B3C] text-xl font-bold mb-2">TAP</p>
-<p className="text-[#7F8C8D] text-sm">
+<p className="text-[#7F8C8D] text-lg">
   Fast and Frantic.
 </p>
           </button>
