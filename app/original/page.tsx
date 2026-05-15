@@ -304,7 +304,7 @@ export default function OriginalGame() {
       } else {
         setBalance(prev => {
           const newBalance = prev * 2
-          if (newBalance > bestBalance) { setCanBank(true); setCanBankDaily(false); setHadBankOption(true) }
+          if (newBalance > bestBalance && newBalance >= 32) { setCanBank(true); setCanBankDaily(false); setHadBankOption(true) }
           else if (newBalance >= 32 && newBalance > todayBest) { setCanBankDaily(true); setHadDailyBankOption(true) }
           return newBalance
         })
@@ -458,7 +458,7 @@ export default function OriginalGame() {
 
         {/* Play Again */}
         {gameState === 'waiting' && (
-          <button onClick={startNewGame} className="w-full bg-[#2ECC71] text-white rounded-xl py-4 font-semibold text-base">
+          <button onClick={startNewGame} className="w-full bg-[#2ECC71] text-white rounded-xl py-4 font-semibold text-base cursor-pointer active:scale-95 transition-all duration-100">
             Play Again
           </button>
         )}

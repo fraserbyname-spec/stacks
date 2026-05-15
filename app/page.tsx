@@ -58,7 +58,7 @@ export default function Home() {
 
           <button
             onClick={() => router.push('/original')}
-            className="bg-white rounded-2xl p-6 w-full text-center shadow-sm border-2 border-[#1A3A5A] active:scale-95 transition-all duration-150"
+            className="bg-white rounded-2xl p-6 w-full text-center shadow-sm border-2 border-[#1A3A5A] active:scale-95 hover:shadow-md cursor-pointer transition-all duration-150"
           >
             <p className="text-[#1A2B3C] text-xl font-bold mb-2">PICK</p>
 <p className="text-[#7F8C8D] text-lg">
@@ -68,7 +68,7 @@ export default function Home() {
 
           <button
             onClick={() => router.push('/play')}
-            className="bg-white rounded-2xl p-6 w-full text-center shadow-sm border-2 border-[#2ECC71] active:scale-95 transition-all duration-150"
+            className="bg-white rounded-2xl p-6 w-full text-center shadow-sm border-2 border-[#2ECC71] active:scale-95 hover:shadow-md cursor-pointer transition-all duration-150"
           >
             <p className="text-[#1A2B3C] text-xl font-bold mb-2">TAP</p>
 <p className="text-[#7F8C8D] text-lg">

@@ -59,7 +59,15 @@ export default function PlayGame() {
   const [balance, setBalance] = useState(1)
   const [taps, setTaps] = useState(0)
   const [gameState, setGameState] = useState<GameState>('ready')
-  const [tiles, setTiles] = useState<TileState[]>(Array(9).fill('grey'))
+  const getPreviewTiles = (): TileState[] => {
+    const t: TileState[] = Array(9).fill('grey')
+    t[Math.floor(Math.random() * 9)] = 'green'
+    let redPos = Math.floor(Math.random() * 9)
+    while (t[redPos] !== 'grey') redPos = Math.floor(Math.random() * 9)
+    t[redPos] = 'red'
+    return t
+  }
+  const [tiles, setTiles] = useState<TileState[]>(getPreviewTiles())
   const [playerName, setPlayerName] = useState('')
   const [bestBalance, setBestBalance] = useState(1)
   const [bestTaps, setBestTaps] = useState(0)
@@ -346,7 +354,7 @@ export default function PlayGame() {
         {/* Play / Play Again */}
         {(gameState === 'ready' || gameState === 'waiting') && (
           <button onClick={startNewGame}
-            className="w-full bg-[#2ECC71] text-white rounded-xl py-4 font-semibold text-base">
+            className="w-full bg-[#2ECC71] text-white rounded-xl py-4 font-semibold text-base cursor-pointer active:scale-95 transition-all duration-100">
             {gameState === 'ready' ? 'Play' : 'Play Again'}
           </button>
         )}
