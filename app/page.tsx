@@ -51,7 +51,7 @@ export default function Home() {
 
         <div className="text-center">
           <h1 className="text-5xl font-bold text-[#1A2B3C] tracking-tight">STACKS 💸</h1>
-          {playerName && <p className="text-[#7F8C8D] text-lg mt-2">Hey {playerName} — choose your game.</p>}
+          {playerName && <p className="text-[#7F8C8D] text-xl mt-2">Hey {playerName} — choose your game.</p>}
         </div>
 
         <div className="flex flex-col gap-4 w-full">
