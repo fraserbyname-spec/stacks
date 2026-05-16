@@ -466,7 +466,6 @@ export default function OriginalGame() {
         {!hasPickedThisSession && gameState === 'playing' && (
           <div className="text-center text-base text-[#7F8C8D] leading-relaxed space-y-1">
             <p className="font-bold text-[#1A2B3C] text-lg">Bank your Stack before you bust!</p>
-            <p>Pick a tile.</p>
             <p><span className="text-[#27AE60] font-semibold">Green</span> = double your money.</p>
             <p><span className="text-[#E74C3C] font-semibold">Red</span> = game over.</p>
           </div>
