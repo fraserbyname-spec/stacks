@@ -18,6 +18,9 @@ export default function PlayLeaderboard() {
   }, [])
 
   const formatBalance = (n: number) => {
+    if (n >= 1000000000000000) return `$${(n / 1000000000000000).toFixed(1)} Quadrillion`
+    if (n >= 1000000000000) return `$${(n / 1000000000000).toFixed(1)}T`
+    if (n >= 1000000000) return `$${(n / 1000000000).toFixed(1)}B`
     if (n >= 1000000) return `$${(n / 1000000).toFixed(1)}M`
     return `$${n.toLocaleString()}`
   }
