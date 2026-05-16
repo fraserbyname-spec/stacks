@@ -314,7 +314,7 @@ export default function PlayGame() {
         </div>
 
         <p className="text-[#7F8C8D] text-lg text-center">
-          {gameState === 'playing' ? 'You have 5 tile changes to choose.' : 'How much bank can you make?'}
+          {gameState === 'playing' ? 'Choose quick before you lose.' : 'How much bank can you make?'}
         </p>
 
         {/* Balance */}
