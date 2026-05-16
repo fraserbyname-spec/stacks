@@ -350,7 +350,6 @@ export default function PlayGame() {
             <p className="font-bold text-[#1A2B3C] text-lg">Tap a tile before time runs out.</p>
             <p>Tap <span className="text-[#27AE60] font-semibold">Green</span> = Double Your Stack.</p>
             <p>Tap <span className="text-[#E74C3C] font-semibold">Red</span> = Game Over.</p>
-            <p>⏱ Make each tap within 5 tile changes.</p>
           </div>
         )}
 
