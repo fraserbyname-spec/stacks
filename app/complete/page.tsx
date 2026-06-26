@@ -32,11 +32,9 @@ function CompleteContent() {
       localStorage.setItem('bvs_best_streak', String(streak))
       setIsNewBest(true)
     }
-    if (isPerfect) {
-      const prevBestTime = localStorage.getItem('bvs_best_time')
-      if (!prevBestTime || timeMs < Number(prevBestTime)) {
-        localStorage.setItem('bvs_best_time', String(timeMs))
-      }
+    const prevBestTime = localStorage.getItem('bvs_best_time')
+    if (!prevBestTime || timeMs < Number(prevBestTime)) {
+      localStorage.setItem('bvs_best_time', String(timeMs))
     }
 
     fetch('/api/submit', {

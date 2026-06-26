@@ -26,8 +26,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Stacks — How much bank can you make?",
-    description: "Pick a tile. Double your money. One wrong pick ends everything.",
+    title: "Bible Verse Sprint",
+    description: "How many Bible verses do you know?",
   },
   metadataBase: new URL("https://stacksgame.app"),
 };
