@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   description: 'How many Bible verses do you know?',
   keywords: "bible game, memory verse game, memory game, simple game, casual game, free game, pick a tile, doubling game",
   openGraph: {
-    title: "Stacks — How much bank can you make?",
+    title: "How many Bible verses do you know?",
     description: "Match scripture to Chapter & Verse.",
     url: "https://stacksgame.app",
     siteName: "Stacks",
