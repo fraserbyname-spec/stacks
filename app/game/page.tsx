@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { shuffleWithinTiers, type Verse } from '../verses'
+import { playCorrect, playWrong } from '../sounds'
 
 type GameState = 'playing' | 'correct_flash' | 'failed' | 'complete'
 
@@ -74,6 +75,7 @@ export default function Game() {
     if (verse.id === currentVerse.id) {
       // Focus immediately inside the user gesture — works on mobile
       inputRef.current?.focus()
+      playCorrect()
       setCorrectFlash(true)
       setGameState('correct_flash')
       setInput('')
@@ -95,6 +97,7 @@ export default function Game() {
 
     } else {
       stopTimer()
+      playWrong()
       setFailedVerse(currentVerse)
       setGameState('failed')
       const finalTime = Date.now() - startTimeRef.current
