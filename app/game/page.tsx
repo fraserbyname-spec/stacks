@@ -88,7 +88,7 @@ export default function Game() {
         } else {
           setCurrentIndex(nextIndex)
           setGameState('playing')
-          inputRef.current?.focus()
+          setTimeout(() => inputRef.current?.focus(), 50)
         }
       }, 600)
 
