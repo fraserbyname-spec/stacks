@@ -93,10 +93,7 @@ function CompleteContent() {
             <span className="text-[#6B7280] text-sm">Time</span>
             <span className="text-[#1A1A1A] font-bold tabular-nums">{formatTime(timeMs)}</span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-[#6B7280] text-sm">Errors</span>
-            <span className="text-[#1A1A1A] font-bold">{errors}</span>
-          </div>
+          
           {rank && (
             <>
               <div className="border-t border-[#E5E7EB] pt-4 flex justify-between items-center">

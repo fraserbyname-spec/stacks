@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { VERSES, shuffleWithinTiers, type Verse } from '../verses'
+import { shuffleWithinTiers, type Verse } from '../verses'
 
-type GameState = 'playing' | 'failed' | 'complete'
+type GameState = 'playing' | 'correct_flash' | 'failed' | 'complete'
 
 export default function Game() {
   const [verses, setVerses] = useState<Verse[]>([])
@@ -14,8 +14,8 @@ export default function Game() {
   const [elapsedMs, setElapsedMs] = useState(0)
   const [started, setStarted] = useState(false)
   const [gameState, setGameState] = useState<GameState>('playing')
-  const [flashRed, setFlashRed] = useState(false)
-  const [wrongAnswer, setWrongAnswer] = useState<Verse | null>(null)
+  const [correctFlash, setCorrectFlash] = useState(false)
+  const [failedVerse, setFailedVerse] = useState<Verse | null>(null)
   const [playerName, setPlayerName] = useState('')
   const [bestStreak, setBestStreak] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -59,51 +59,52 @@ export default function Game() {
     setInput(value)
     if (!started && value.length > 0) startTimer()
     if (value.length === 0) { setSuggestions([]); return }
-
     const lower = value.toLowerCase().replace(/\s/g, '')
     const matches = verses.filter(v => {
       const bookLower = v.book.toLowerCase().replace(/\s/g, '')
       return bookLower.startsWith(lower) ||
         v.searchTerms.some(t => t.startsWith(lower))
     })
-
-    // Deduplicate by book, showing all matching verses
     setSuggestions(matches)
   }
 
   const selectVerse = (verse: Verse) => {
-    if (!currentVerse) return
+    if (!currentVerse || gameState !== 'playing') return
+
     if (verse.id === currentVerse.id) {
-      // Correct
+      // Correct — show green tick briefly
+      setCorrectFlash(true)
+      setGameState('correct_flash')
       setInput('')
       setSuggestions([])
-      const nextIndex = currentIndex + 1
-      if (nextIndex === verses.length) {
-        stopTimer()
-        const finalTime = Date.now() - startTimeRef.current
-        setGameState('complete')
-        setTimeout(() => {
+      setTimeout(() => {
+        setCorrectFlash(false)
+        const nextIndex = currentIndex + 1
+        if (nextIndex === verses.length) {
+          stopTimer()
+          const finalTime = Date.now() - startTimeRef.current
+          setGameState('complete')
           router.push(`/complete?time=${finalTime}&streak=50&errors=0`)
-        }, 500)
-      } else {
-        setCurrentIndex(nextIndex)
-        setTimeout(() => inputRef.current?.focus(), 50)
-      }
+        } else {
+          setCurrentIndex(nextIndex)
+          setGameState('playing')
+          setTimeout(() => inputRef.current?.focus(), 50)
+        }
+      }, 600)
+
     } else {
-      // Wrong
+      // Wrong — show red cross and correct answer
       stopTimer()
-      setWrongAnswer(currentVerse)
-      setFlashRed(true)
+      setFailedVerse(currentVerse)
       setGameState('failed')
       const finalTime = Date.now() - startTimeRef.current
+      // Navigate after player has seen the answer
       setTimeout(() => {
-        setFlashRed(false)
         router.push(`/complete?time=${finalTime}&streak=${currentIndex}&errors=1`)
-      }, 2000)
+      }, 3000)
     }
   }
 
-  const currentTier = currentVerse?.tier ?? 'EASY'
   const tierColours: Record<string, string> = {
     EASY: 'bg-green-100 text-green-700',
     LESS_EASY: 'bg-blue-100 text-blue-700',
@@ -112,17 +113,16 @@ export default function Game() {
     EXPERT: 'bg-red-100 text-red-700',
   }
   const tierLabels: Record<string, string> = {
-    EASY: 'Easy',
-    LESS_EASY: 'Less Easy',
-    MEDIUM: 'Medium',
-    HARD: 'Hard',
-    EXPERT: 'Expert',
+    EASY: 'Easy', LESS_EASY: 'Less Easy', MEDIUM: 'Medium',
+    HARD: 'Hard', EXPERT: 'Expert',
   }
 
   if (!currentVerse) return null
 
+  const currentTier = currentVerse.tier
+
   return (
-    <main className={`min-h-screen flex flex-col transition-colors duration-150 ${flashRed ? 'bg-red-500' : 'bg-white'}`}>
+    <main className="min-h-screen bg-white flex flex-col">
 
       {/* Header */}
       <div className="border-b border-[#E5E7EB] px-4 py-3 flex items-center justify-between gap-4">
@@ -144,7 +144,7 @@ export default function Game() {
 
       <div className="flex-1 flex flex-col px-4 pt-6 gap-4">
 
-        {/* Tier badge */}
+        {/* Tier badge + progress */}
         <div className="flex items-center gap-2">
           <span className={`text-xs font-semibold px-3 py-1 rounded-full ${tierColours[currentTier]}`}>
             {tierLabels[currentTier]}
@@ -152,19 +152,39 @@ export default function Game() {
           <span className="text-[#9CA3AF] text-xs">Verse {currentIndex + 1} of 50</span>
         </div>
 
-        {/* Verse text */}
-        <div className={`rounded-2xl p-5 ${flashRed ? 'bg-red-400' : 'bg-[#F9FAFB]'}`}>
-          <p className={`text-lg leading-relaxed font-medium ${flashRed ? 'text-white' : 'text-[#1A1A1A]'}`}>
-            &ldquo;{currentVerse.text}&rdquo;
-          </p>
-          {flashRed && wrongAnswer && (
-            <div className="mt-4 pt-4 border-t border-red-400">
-              <p className="text-white/70 text-sm">The answer was:</p>
-              <p className="text-white font-bold text-lg mt-1">
-                {wrongAnswer.book} {wrongAnswer.chapter}:{wrongAnswer.verse}
-              </p>
+        {/* Verse card */}
+        <div className={`rounded-2xl p-5 transition-colors duration-200 ${
+          correctFlash ? 'bg-green-50 border-2 border-green-400' :
+          gameState === 'failed' ? 'bg-red-50 border-2 border-red-400' :
+          'bg-[#F9FAFB]'
+        }`}>
+
+          {/* Correct flash */}
+          {correctFlash && (
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-green-500 text-2xl">✓</span>
+              <span className="text-green-600 font-semibold text-sm">
+                {currentVerse.book} {currentVerse.chapter}:{currentVerse.verse}
+              </span>
             </div>
           )}
+
+          {/* Failed state */}
+          {gameState === 'failed' && failedVerse && (
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-red-500 text-2xl">✗</span>
+              <div>
+                <p className="text-red-600 font-semibold text-sm">The answer was:</p>
+                <p className="text-red-700 font-bold">
+                  {failedVerse.book} {failedVerse.chapter}:{failedVerse.verse}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <p className="text-lg leading-relaxed font-medium text-[#1A1A1A]">
+            &ldquo;{currentVerse.text}&rdquo;
+          </p>
         </div>
 
         {/* Input */}
@@ -193,6 +213,11 @@ export default function Game() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Failed — tap to continue */}
+        {gameState === 'failed' && (
+          <p className="text-center text-[#9CA3AF] text-sm mt-2">Taking you to results...</p>
         )}
 
         {/* Progress bar */}
