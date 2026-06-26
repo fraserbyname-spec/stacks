@@ -35,9 +35,9 @@ export default function Game() {
 
   useEffect(() => {
     if (gameState === 'playing') {
-      setTimeout(() => inputRef.current?.focus(), 50)
+      inputRef.current?.focus()
     }
-  }, [gameState])
+  }, [gameState, currentIndex])
 
   const startTimer = () => {
     if (started) return
@@ -200,7 +200,36 @@ export default function Game() {
               type="text"
               value={input}
               onChange={e => handleInput(e.target.value)}
-              placeholder="Type book name..."
+              {/* Input — always in DOM so ref stays attached */}
+        <div className="relative" style={{ display: gameState === 'playing' || gameState === 'correct_flash' ? 'block' : 'none' }}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={e => handleInput(e.target.value)}
+            placeholder="Type book name..."
+            className="w-full border-2 border-[#E5E7EB] focus:border-[#1A1A1A] rounded-xl px-4 py-4 text-[#1A1A1A] text-lg outline-none transition-colors"
+          />
+          {suggestions.length > 0 && gameState === 'playing' && (
+            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 overflow-hidden max-h-64 overflow-y-auto">
+              {suggestions.map(verse => (
+                <button
+                  key={verse.id}
+                  onClick={() => selectVerse(verse)}
+                  className="w-full text-left px-4 py-3 text-[#1A1A1A] hover:bg-[#F9FAFB] border-b border-[#F3F4F6] last:border-0 transition-colors"
+                >
+                  <span className="font-semibold">{verse.book}</span>
+                  <span className="text-[#6B7280] ml-2">{verse.chapter}:{verse.verse}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Failed — taking to results */}
+        {gameState === 'failed' && (
+          <p className="text-center text-[#9CA3AF] text-sm mt-2">Taking you to results...</p>
+        )}placeholder="Type book name..."
               className="w-full border-2 border-[#E5E7EB] focus:border-[#1A1A1A] rounded-xl px-4 py-4 text-[#1A1A1A] text-lg outline-none transition-colors"
             />
             {suggestions.length > 0 && (
