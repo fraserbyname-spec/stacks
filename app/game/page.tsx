@@ -33,6 +33,12 @@ export default function Game() {
     setTimeout(() => inputRef.current?.focus(), 100)
   }, [])
 
+  useEffect(() => {
+    if (gameState === 'playing') {
+      setTimeout(() => inputRef.current?.focus(), 50)
+    }
+  }, [gameState])
+
   const startTimer = () => {
     if (started) return
     setStarted(true)
@@ -88,7 +94,6 @@ export default function Game() {
         } else {
           setCurrentIndex(nextIndex)
           setGameState('playing')
-          setTimeout(() => inputRef.current?.focus(), 50)
         }
       }, 600)
 
