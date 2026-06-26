@@ -66,9 +66,9 @@ export default function Home() {
       <div className="w-full max-w-sm flex flex-col items-center gap-10">
 
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-[#1A1A1A] tracking-tight">Bible Verse Sprint</h1>
+          <h1 className="text-4xl font-bold text-[#1A1A1A] tracking-tight">Stack Bible Verses</h1>
           <p className="text-[#6B7280] text-base mt-3 leading-relaxed">
-            Identify all 50 verses in order. One mistake ends your run.
+            Identify the location for all 50 Bible verses. One mistake ends your run.
           </p>
         </div>
 
