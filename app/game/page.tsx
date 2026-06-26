@@ -30,14 +30,8 @@ export default function Game() {
     setPlayerName(name)
     if (streak) setBestStreak(Number(streak))
     setVerses(shuffleWithinTiers())
-    setTimeout(() => inputRef.current?.focus(), 100)
+    setTimeout(() => inputRef.current?.focus(), 200)
   }, [])
-
-  useEffect(() => {
-    if (gameState === 'playing') {
-      inputRef.current?.focus()
-    }
-  }, [gameState, currentIndex])
 
   const startTimer = () => {
     if (started) return
@@ -78,13 +72,14 @@ export default function Game() {
     if (!currentVerse || gameState !== 'playing') return
 
     if (verse.id === currentVerse.id) {
-      // Correct — show green tick briefly
+      // Focus immediately inside the user gesture — works on mobile
+      inputRef.current?.focus()
       setCorrectFlash(true)
       setGameState('correct_flash')
       setInput('')
       setSuggestions([])
       setTimeout(() => {
-       setCorrectFlash(false)
+        setCorrectFlash(false)
         const nextIndex = currentIndex + 1
         if (nextIndex === verses.length) {
           stopTimer()
@@ -94,16 +89,15 @@ export default function Game() {
         } else {
           setCurrentIndex(nextIndex)
           setGameState('playing')
+          inputRef.current?.focus()
         }
       }, 600)
 
     } else {
-      // Wrong — show red cross and correct answer
       stopTimer()
       setFailedVerse(currentVerse)
       setGameState('failed')
       const finalTime = Date.now() - startTimeRef.current
-      // Navigate after player has seen the answer
       setTimeout(() => {
         router.push(`/complete?time=${finalTime}&streak=${currentIndex}&errors=1`)
       }, 3000)
@@ -149,7 +143,7 @@ export default function Game() {
 
       <div className="flex-1 flex flex-col px-4 pt-6 gap-4">
 
-        {/* Tier badge + progress */}
+        {/* Tier badge */}
         <div className="flex items-center gap-2">
           <span className={`text-xs font-semibold px-3 py-1 rounded-full ${tierColours[currentTier]}`}>
             {tierLabels[currentTier]}
@@ -163,8 +157,6 @@ export default function Game() {
           gameState === 'failed' ? 'bg-red-50 border-2 border-red-400' :
           'bg-[#F9FAFB]'
         }`}>
-
-          {/* Correct flash */}
           {correctFlash && (
             <div className="flex items-center gap-2 mb-3">
               <span className="text-green-500 text-2xl">✓</span>
@@ -173,8 +165,6 @@ export default function Game() {
               </span>
             </div>
           )}
-
-          {/* Failed state */}
           {gameState === 'failed' && failedVerse && (
             <div className="flex items-center gap-2 mb-3">
               <span className="text-red-500 text-2xl">✗</span>
@@ -186,22 +176,16 @@ export default function Game() {
               </div>
             </div>
           )}
-
           <p className="text-lg leading-relaxed font-medium text-[#1A1A1A]">
             &ldquo;{currentVerse.text}&rdquo;
           </p>
         </div>
 
-        {/* Input */}
-        {gameState === 'playing' && (
-          <div className="relative">
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={e => handleInput(e.target.value)}
-              {/* Input — always in DOM so ref stays attached */}
-        <div className="relative" style={{ display: gameState === 'playing' || gameState === 'correct_flash' ? 'block' : 'none' }}>
+        {/* Input — always in DOM so focus works reliably */}
+        <div
+          className="relative"
+          style={{ visibility: gameState === 'playing' || gameState === 'correct_flash' ? 'visible' : 'hidden' }}
+        >
           <input
             ref={inputRef}
             type="text"
@@ -226,30 +210,6 @@ export default function Game() {
           )}
         </div>
 
-        {/* Failed — taking to results */}
-        {gameState === 'failed' && (
-          <p className="text-center text-[#9CA3AF] text-sm mt-2">Taking you to results...</p>
-        )}placeholder="Type book name..."
-              className="w-full border-2 border-[#E5E7EB] focus:border-[#1A1A1A] rounded-xl px-4 py-4 text-[#1A1A1A] text-lg outline-none transition-colors"
-            />
-            {suggestions.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 overflow-hidden max-h-64 overflow-y-auto">
-                {suggestions.map(verse => (
-                  <button
-                    key={verse.id}
-                    onClick={() => selectVerse(verse)}
-                    className="w-full text-left px-4 py-3 text-[#1A1A1A] hover:bg-[#F9FAFB] border-b border-[#F3F4F6] last:border-0 transition-colors"
-                  >
-                    <span className="font-semibold">{verse.book}</span>
-                    <span className="text-[#6B7280] ml-2">{verse.chapter}:{verse.verse}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Failed — tap to continue */}
         {gameState === 'failed' && (
           <p className="text-center text-[#9CA3AF] text-sm mt-2">Taking you to results...</p>
         )}
