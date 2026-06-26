@@ -48,8 +48,8 @@ export default function Leaderboard() {
       <div className="w-full max-w-sm flex flex-col gap-6">
 
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-[#1A1A1A]">Leaderboard</h1>
-          <p className="text-[#6B7280] text-sm mt-1">Highest streak wins — time breaks ties</p>
+          <h1 className="text-2xl font-bold text-[#1A1A1A]">📖 Leaderboard 📖</h1>
+          <p className="text-[#6B7280] text-sm mt-1">Highest streak wins - time breaks ties</p>
         </div>
 
         {loading ? (
