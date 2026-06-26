@@ -8,24 +8,17 @@ export default function Home() {
   const [playerName, setPlayerName] = useState('')
   const [showNameEntry, setShowNameEntry] = useState(false)
   const [bestStreak, setBestStreak] = useState<number | null>(null)
-  const [worldBest, setWorldBest] = useState<number | null>(null)
+  const [bestTime, setBestTime] = useState<number | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     const name = localStorage.getItem('bvs_name')
     const streak = localStorage.getItem('bvs_best_streak')
+    const time = localStorage.getItem('bvs_best_time')
     if (name) setPlayerName(name)
     else setShowNameEntry(true)
     if (streak) setBestStreak(Number(streak))
-
-    fetch('/api/leaderboard')
-      .then(r => r.json())
-      .then(data => {
-        if (data.top10 && data.top10.length > 0) {
-          setWorldBest(data.top10[0].streak)
-        }
-      })
-      .catch(() => {})
+    if (time) setBestTime(Number(time))
   }, [])
 
   const saveName = () => {
@@ -34,6 +27,13 @@ export default function Home() {
     localStorage.setItem('bvs_name', trimmed)
     setPlayerName(trimmed)
     setShowNameEntry(false)
+  }
+
+  const formatTime = (ms: number) => {
+    const minutes = Math.floor(ms / 60000)
+    const seconds = Math.floor((ms % 60000) / 1000)
+    const hundredths = Math.floor((ms % 1000) / 10)
+    return `${minutes}:${String(seconds).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`
   }
 
   return (
@@ -66,9 +66,9 @@ export default function Home() {
       <div className="w-full max-w-sm flex flex-col items-center gap-10">
 
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-[#1A1A1A] tracking-tight">Stack Bible Verses</h1>
+          <h1 className="text-4xl font-bold text-[#1A1A1A] tracking-tight">Bible Verse Sprint</h1>
           <p className="text-[#6B7280] text-base mt-3 leading-relaxed">
-            Identify the location of all 50 Bible verses. One mistake ends your run.
+            Identify all 50 verses in order. One mistake ends your run.
           </p>
         </div>
 
@@ -80,9 +80,9 @@ export default function Home() {
             </p>
           </div>
           <div className="flex-1 bg-[#F9FAFB] rounded-2xl p-5 text-center">
-            <p className="text-[#6B7280] text-xs font-medium uppercase tracking-wider mb-2">World Best</p>
-            <p className="text-[#1A1A1A] text-3xl font-bold">
-              {worldBest !== null ? `${worldBest}/50` : '--'}
+            <p className="text-[#6B7280] text-xs font-medium uppercase tracking-wider mb-2">Best Time</p>
+            <p className="text-[#1A1A1A] text-xl font-bold tabular-nums">
+              {bestTime !== null ? formatTime(bestTime) : '--:--'}
             </p>
           </div>
         </div>

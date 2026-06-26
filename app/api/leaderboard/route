@@ -28,13 +28,18 @@ export async function GET(request: Request) {
     if (playerData) {
       const inTop10 = top10?.some(s => s.player_id === player_id)
       if (!inTop10) {
-        const { count } = await supabase
+        // Count players who rank better
+        const { data: betterPlayers } = await supabase
           .from('leaderboard')
-          .select('*', { count: 'exact', head: true })
-          .or(`streak.gt.${playerData.streak},and(streak.eq.${playerData.streak},time_ms.lt.${playerData.time_ms})`)
+          .select('player_id, streak, time_ms')
+
+        const rank = (betterPlayers ?? []).filter(p =>
+          p.streak > playerData.streak ||
+          (p.streak === playerData.streak && p.time_ms < playerData.time_ms)
+        ).length + 1
 
         playerEntry = {
-          rank: (count ?? 0) + 1,
+          rank,
           player_name: playerData.player_name,
           time_ms: playerData.time_ms,
           streak: playerData.streak,
@@ -44,5 +49,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ top10, playerEntry })
+  return NextResponse.json({ top10: top10 ?? [], playerEntry })
 }

@@ -78,7 +78,7 @@ export default function Game() {
       setInput('')
       setSuggestions([])
       setTimeout(() => {
-        setCorrectFlash(false)
+       setCorrectFlash(false)
         const nextIndex = currentIndex + 1
         if (nextIndex === verses.length) {
           stopTimer()
@@ -88,7 +88,7 @@ export default function Game() {
         } else {
           setCurrentIndex(nextIndex)
           setGameState('playing')
-          setTimeout(() => inputRef.current?.focus(), 50)
+          inputRef.current?.focus()
         }
       }, 600)
 

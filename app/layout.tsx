@@ -14,12 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Stacks — How much bank can you make?",
-  description: "Pick a tile. Double your money. One wrong pick ends everything. The simple streak game everyone is playing.",
-  keywords: "stacks game, fidget game, streak game, money game, simple game, casual game, free game, pick a tile, doubling game",
+  title: 'Bible Verse Sprint',
+  description: 'How many Bible verses do you know?',
+  keywords: "bible game, memory verse game, memory game, simple game, casual game, free game, pick a tile, doubling game",
   openGraph: {
     title: "Stacks — How much bank can you make?",
-    description: "Pick a tile. Double your money. One wrong pick ends everything.",
+    description: "Match scripture to Chapter & Verse.",
     url: "https://stacksgame.app",
     siteName: "Stacks",
     type: "website",
