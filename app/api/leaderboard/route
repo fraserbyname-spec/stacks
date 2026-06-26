@@ -1,52 +1,48 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin as supabase } from '../../../supabase'
+import { supabaseAdmin as supabase } from '../../supabase'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const player_id = searchParams.get('player_id')
 
-  const today = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0]
-
   const { data: top10, error } = await supabase
-    .from('daily_scores')
+    .from('leaderboard')
     .select('*')
-    .eq('date', today)
-    .order('balance', { ascending: false })
+    .order('streak', { ascending: false })
+    .order('time_ms', { ascending: true })
     .limit(10)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  let playerRank = null
+  let playerEntry = null
 
   if (player_id) {
-    const { data: playerScore } = await supabase
-      .from('daily_scores')
+    const { data: playerData } = await supabase
+      .from('leaderboard')
       .select('*')
       .eq('player_id', player_id)
-      .eq('date', today)
       .single()
 
-    if (playerScore) {
+    if (playerData) {
       const inTop10 = top10?.some(s => s.player_id === player_id)
-
       if (!inTop10) {
         const { count } = await supabase
-          .from('daily_scores')
+          .from('leaderboard')
           .select('*', { count: 'exact', head: true })
-          .gt('balance', playerScore.balance)
-          .eq('date', today)
+          .or(`streak.gt.${playerData.streak},and(streak.eq.${playerData.streak},time_ms.lt.${playerData.time_ms})`)
 
-        playerRank = {
+        playerEntry = {
           rank: (count ?? 0) + 1,
-          player_name: playerScore.player_name,
-          balance: playerScore.balance,
-          picks: playerScore.picks
+          player_name: playerData.player_name,
+          time_ms: playerData.time_ms,
+          streak: playerData.streak,
+          errors: playerData.errors
         }
       }
     }
   }
 
-  return NextResponse.json({ top10, playerRank })
+  return NextResponse.json({ top10, playerEntry })
 }
