@@ -85,7 +85,7 @@ export default function Home() {
           <p className="text-3xl mb-2">𓂃 ོ✝︎𓂃</p>
           <h1 className="text-4xl font-bold text-[#1A1A1A] tracking-tight">Bible Verse Sprint</h1>
           <p className="text-[#6B7280] text-base mt-3 leading-relaxed">
-            Identify all 50 verses in order. One mistake ends your run.
+            Identify all 50 verses. One mistake ends your run.
           </p>
         </div>
 
