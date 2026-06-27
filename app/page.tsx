@@ -9,6 +9,7 @@ export default function Home() {
   const [showNameEntry, setShowNameEntry] = useState(false)
   const [bestStreak, setBestStreak] = useState<number | null>(null)
   const [bestTime, setBestTime] = useState<number | null>(null)
+  const [worldRank, setWorldRank] = useState<number | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -19,6 +20,20 @@ export default function Home() {
     else setShowNameEntry(true)
     if (streak) setBestStreak(Number(streak))
     if (time) setBestTime(Number(time))
+
+    const playerId = localStorage.getItem('bvs_player_id')
+    if (playerId) {
+      fetch(`/api/leaderboard?player_id=${playerId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.playerEntry) setWorldRank(data.playerEntry.rank)
+          else if (data.top10?.some((e: any) => e.player_id === playerId)) {
+            const idx = data.top10.findIndex((e: any) => e.player_id === playerId)
+            if (idx !== -1) setWorldRank(idx + 1)
+          }
+        })
+        .catch(() => {})
+    }
   }, [])
 
   const saveName = () => {
@@ -63,15 +78,18 @@ export default function Home() {
         </div>
       )}
 
-      <div className="w-full max-w-sm flex flex-col items-center gap-10">
+      <div className="w-full max-w-sm flex flex-col items-center gap-8">
 
+        {/* Title */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-[#1A1A1A] tracking-tight">Stack Bible Verses</h1>
+          <p className="text-3xl mb-2">𓂃 ོ✝︎𓂃</p>
+          <h1 className="text-4xl font-bold text-[#1A1A1A] tracking-tight">Bible Verse Sprint</h1>
           <p className="text-[#6B7280] text-base mt-3 leading-relaxed">
-            Place all 50 verses. One mistake ends your run.
+            Identify all 50 verses in order. One mistake ends your run.
           </p>
         </div>
 
+        {/* Stats */}
         <div className="w-full flex gap-4">
           <div className="flex-1 bg-[#F9FAFB] rounded-2xl p-5 text-center">
             <p className="text-[#6B7280] text-xs font-medium uppercase tracking-wider mb-2">Your Best</p>
@@ -86,6 +104,14 @@ export default function Home() {
             </p>
           </div>
         </div>
+
+        {/* World Rank */}
+        {worldRank !== null && (
+          <div className="w-full bg-[#F9FAFB] rounded-2xl p-5 text-center">
+            <p className="text-[#6B7280] text-xs font-medium uppercase tracking-wider mb-2">World Rank</p>
+            <p className="text-[#1A1A1A] text-3xl font-bold">#{worldRank}</p>
+          </div>
+        )}
 
         <button
           onClick={() => router.push('/game')}

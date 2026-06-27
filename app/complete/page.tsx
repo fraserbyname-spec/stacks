@@ -56,7 +56,7 @@ function CompleteContent() {
 
   const percentile = rank && total ? Math.round((1 - rank / total) * 100) : null
 
-  const shareText = `Bible Verse Sprint\nStreak: ${streak}/50${isPerfect ? ' 🎯 PERFECT!' : ''}\nTime: ${formatTime(timeMs)}${rank ? `\nWorld Rank: #${rank}` : ''}\n\nCan you beat me?\nhttps://stacksgame.app`
+  const shareText = `𓂃 ོ✝︎𓂃\nStack Bible Verses\nScore: ${streak}/50\nTime: ${formatTime(timeMs)}${rank ? `\nWorld Rank: #${rank}` : ''}\n\nhttps://stacksgame.app`
 
   const handleShare = () => {
     if (navigator.share) navigator.share({ text: shareText })
