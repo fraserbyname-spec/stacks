@@ -14,23 +14,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Bible Verse Sprint',
-  description: 'How many Bible verses do you know?',
-  keywords: "bible game, memory verse game, memory game, simple game, casual game, free game, pick a tile, doubling game",
+  title: 'Stacks',
+  description: 'Build a Stack every day. Grow your balance forever.',
   openGraph: {
-    title: "How many Bible verses do you know?",
-    description: "Match scripture to Chapter & Verse.",
-    url: "https://stacksgame.app",
-    siteName: "Stacks",
-    type: "website",
+    title: 'Stacks',
+    description: 'Build a Stack every day. Grow your balance forever.',
+    url: 'https://stacksgame.app',
+    siteName: 'Stacks',
+    type: 'website',
   },
   twitter: {
-    card: "summary",
-    title: "Bible Verse Sprint",
-    description: "How many Bible verses do you know?",
-  },
-  metadataBase: new URL("https://stacksgame.app"),
-};
+    card: 'summary',
+    title: 'Stacks',
+    description: 'Build a Stack every day. Grow your balance forever.',
+  }
+}
 
 export default function RootLayout({
   children,

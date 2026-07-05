@@ -6,45 +6,55 @@ const getCtx = () => {
   return ctx
 }
 
-// Short positive chime — correct answer
-export const playCorrect = () => {
-  const c = getCtx()
-  const t = c.currentTime
-
-  const osc = c.createOscillator()
-  osc.type = 'sine'
-  osc.frequency.setValueAtTime(523, t)      // C5
-  osc.frequency.setValueAtTime(659, t + 0.08) // E5
-  osc.frequency.setValueAtTime(784, t + 0.16) // G5
-
-  const gain = c.createGain()
-  gain.gain.setValueAtTime(0.2, t)
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4)
-
-  osc.connect(gain)
-  gain.connect(c.destination)
-  osc.start(t)
-  osc.stop(t + 0.4)
-}
-
-// Short negative tone — wrong answer
+// Wrong guess — short low tone
 export const playWrong = () => {
   const c = getCtx()
   const t = c.currentTime
+  const osc = c.createOscillator()
+  osc.type = 'sine'
+  osc.frequency.setValueAtTime(220, t)
+  osc.frequency.exponentialRampToValueAtTime(160, t + 0.15)
+  const gain = c.createGain()
+  gain.gain.setValueAtTime(0.15, t)
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2)
+  osc.connect(gain)
+  gain.connect(c.destination)
+  osc.start(t)
+  osc.stop(t + 0.2)
+}
 
-  // Two descending tones
-  const osc1 = c.createOscillator()
-  osc1.type = 'sine'
-  osc1.frequency.setValueAtTime(330, t)
-  osc1.frequency.setValueAtTime(220, t + 0.15)
+// Correct solve — ascending chime
+export const playSolve = () => {
+  const c = getCtx()
+  const notes = [523, 659, 784, 1047]
+  notes.forEach((freq, i) => {
+    const osc = c.createOscillator()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(freq, 0)
+    const gain = c.createGain()
+    const t = c.currentTime + i * 0.12
+    gain.gain.setValueAtTime(0, t)
+    gain.gain.linearRampToValueAtTime(0.2, t + 0.05)
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4)
+    osc.connect(gain)
+    gain.connect(c.destination)
+    osc.start(t)
+    osc.stop(t + 0.4)
+  })
+}
 
-  const gain1 = c.createGain()
-  gain1.gain.setValueAtTime(0.2, t)
-  gain1.gain.setValueAtTime(0.2, t + 0.15)
-  gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.45)
-
-  osc1.connect(gain1)
-  gain1.connect(c.destination)
-  osc1.start(t)
-  osc1.stop(t + 0.45)
+// Submit guess — soft click
+export const playSubmit = () => {
+  const c = getCtx()
+  const t = c.currentTime
+  const osc = c.createOscillator()
+  osc.type = 'sine'
+  osc.frequency.setValueAtTime(400, t)
+  const gain = c.createGain()
+  gain.gain.setValueAtTime(0.1, t)
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08)
+  osc.connect(gain)
+  gain.connect(c.destination)
+  osc.start(t)
+  osc.stop(t + 0.08)
 }

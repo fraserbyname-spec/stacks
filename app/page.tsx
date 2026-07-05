@@ -4,124 +4,127 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function Home() {
-  const [nameInput, setNameInput] = useState('')
-  const [playerName, setPlayerName] = useState('')
-  const [showNameEntry, setShowNameEntry] = useState(false)
-  const [bestStreak, setBestStreak] = useState<number | null>(null)
-  const [bestTime, setBestTime] = useState<number | null>(null)
-  const [worldRank, setWorldRank] = useState<number | null>(null)
+  const [balance, setBalance] = useState<number>(10)
+  const [puzzlesPlayed, setPuzzlesPlayed] = useState<number>(0)
+  const [hasPlayedToday, setHasPlayedToday] = useState(false)
+  const [todayResult, setTodayResult] = useState<{
+    solved: boolean
+    attempts: number
+    interest: number
+    earned: number
+  } | null>(null)
+  const [timeUntilNext, setTimeUntilNext] = useState('')
   const router = useRouter()
 
-  useEffect(() => {
-    const name = localStorage.getItem('bvs_name')
-    const streak = localStorage.getItem('bvs_best_streak')
-    const time = localStorage.getItem('bvs_best_time')
-    if (name) setPlayerName(name)
-    else setShowNameEntry(true)
-    if (streak) setBestStreak(Number(streak))
-    if (time) setBestTime(Number(time))
+  const getTodayKey = () => {
+    const now = new Date()
+    return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`
+  }
 
-    const playerId = localStorage.getItem('bvs_player_id')
-    if (playerId) {
-      fetch(`/api/leaderboard?player_id=${playerId}`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.playerEntry) setWorldRank(data.playerEntry.rank)
-          else if (data.top10?.some((e: any) => e.player_id === playerId)) {
-            const idx = data.top10.findIndex((e: any) => e.player_id === playerId)
-            if (idx !== -1) setWorldRank(idx + 1)
-          }
-        })
-        .catch(() => {})
+  const formatBalance = (n: number) => {
+    if (n >= 1000) return `$${Math.round(n).toLocaleString()}`
+    return `$${n.toFixed(2)}`
+  }
+
+  const formatInterest = (rate: number) => `+${(rate * 100).toFixed(1)}%`
+
+  useEffect(() => {
+    const stored = localStorage.getItem('stacks_balance')
+    const played = localStorage.getItem('stacks_puzzles_played')
+    const todayKey = getTodayKey()
+    const todayData = localStorage.getItem(`stacks_result_${todayKey}`)
+
+    if (stored) setBalance(Number(stored))
+    if (played) setPuzzlesPlayed(Number(played))
+    if (todayData) {
+      setHasPlayedToday(true)
+      setTodayResult(JSON.parse(todayData))
     }
   }, [])
 
-  const saveName = () => {
-    const trimmed = nameInput.trim()
-    if (!trimmed) return
-    localStorage.setItem('bvs_name', trimmed)
-    setPlayerName(trimmed)
-    setShowNameEntry(false)
-  }
-
-  const formatTime = (ms: number) => {
-    const minutes = Math.floor(ms / 60000)
-    const seconds = Math.floor((ms % 60000) / 1000)
-    const hundredths = Math.floor((ms % 1000) / 10)
-    return `${minutes}:${String(seconds).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`
-  }
+  // Countdown to next puzzle
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date()
+      const next = new Date()
+      next.setUTCHours(24, 0, 0, 0)
+      const diff = next.getTime() - now.getTime()
+      const h = Math.floor(diff / 3600000)
+      const m = Math.floor((diff % 3600000) / 60000)
+      const s = Math.floor((diff % 60000) / 1000)
+      setTimeUntilNext(
+        `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      )
+    }
+    tick()
+    const interval = setInterval(tick, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
-    <main className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
-
-      {showNameEntry && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
-          <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-xl">
-            <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">Welcome</h2>
-            <p className="text-[#6B7280] text-sm mb-6">What should we call you on the leaderboard?</p>
-            <input
-              type="text"
-              maxLength={12}
-              placeholder="Your name"
-              value={nameInput}
-              onChange={e => setNameInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && saveName()}
-              className="w-full border border-[#E5E7EB] rounded-xl px-4 py-3 text-[#1A1A1A] text-base outline-none focus:border-[#1A1A1A] mb-4"
-            />
-            <button
-              onClick={saveName}
-              className="w-full bg-[#1A1A1A] text-white rounded-xl py-3 font-semibold text-base"
-            >
-              Let&apos;s go
-            </button>
-          </div>
-        </div>
-      )}
-
+    <main className="min-h-screen bg-[#0F0F0F] flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm flex flex-col items-center gap-8">
 
         {/* Title */}
         <div className="text-center">
-          <p className="text-3xl mb-2">𓂃 ོ✝︎𓂃</p>
-          <h1 className="text-4xl font-bold text-[#1A1A1A] tracking-tight">Bible Verse Sprint</h1>
-          <p className="text-[#6B7280] text-base mt-3 leading-relaxed">
-            Identify all 50 verses. One mistake ends your run.
-          </p>
+          <h1 className="text-5xl font-bold text-white tracking-tight">STACKS</h1>
+          <p className="text-[#666] text-sm mt-2">Build a Stack every day. Grow your balance forever.</p>
         </div>
 
-        {/* Stats */}
-        <div className="w-full flex gap-4">
-          <div className="flex-1 bg-[#F9FAFB] rounded-2xl p-5 text-center">
-            <p className="text-[#6B7280] text-xs font-medium uppercase tracking-wider mb-2">Your Best</p>
-            <p className="text-[#1A1A1A] text-3xl font-bold">
-              {bestStreak !== null ? `${bestStreak}/50` : '--'}
-            </p>
-          </div>
-          <div className="flex-1 bg-[#F9FAFB] rounded-2xl p-5 text-center">
-            <p className="text-[#6B7280] text-xs font-medium uppercase tracking-wider mb-2">Best Time</p>
-            <p className="text-[#1A1A1A] text-xl font-bold tabular-nums">
-              {bestTime !== null ? formatTime(bestTime) : '--:--'}
-            </p>
-          </div>
+        {/* Balance */}
+        <div className="w-full bg-[#1A1A1A] rounded-2xl p-6 text-center">
+          <p className="text-[#666] text-xs uppercase tracking-widest mb-1">Balance</p>
+          <p className="text-white text-5xl font-bold tabular-nums">{formatBalance(balance)}</p>
+          <p className="text-[#444] text-xs mt-2">{puzzlesPlayed} puzzle{puzzlesPlayed !== 1 ? 's' : ''} played</p>
         </div>
 
-        {/* World Rank */}
-        {worldRank !== null && (
-          <div className="w-full bg-[#F9FAFB] rounded-2xl p-5 text-center">
-            <p className="text-[#6B7280] text-xs font-medium uppercase tracking-wider mb-2">World Rank</p>
-            <p className="text-[#1A1A1A] text-3xl font-bold">#{worldRank}</p>
+        {/* Today's state */}
+        {hasPlayedToday && todayResult ? (
+          <div className="w-full bg-[#1A1A1A] rounded-2xl p-6 flex flex-col gap-3">
+            <p className="text-white font-bold text-center">
+              {todayResult.solved ? 'Stack Complete ✓' : 'Stack Failed'}
+            </p>
+            {todayResult.solved ? (
+              <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#666]">Attempts used</span>
+                  <span className="text-white font-medium">{todayResult.attempts} / 8</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#666]">Interest earned</span>
+                  <span className="text-green-400 font-medium">{formatInterest(todayResult.interest)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#666]">Today's gain</span>
+                  <span className="text-green-400 font-medium">+{formatBalance(todayResult.earned)}</span>
+                </div>
+              </>
+            ) : (
+              <p className="text-[#666] text-sm text-center">No growth today. Come back tomorrow.</p>
+            )}
+            <div className="border-t border-[#333] pt-3 text-center">
+              <p className="text-[#666] text-xs">Next Stack in</p>
+              <p className="text-white font-bold text-xl tabular-nums mt-1">{timeUntilNext}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full flex flex-col gap-4">
+            <div className="w-full bg-[#1A1A1A] rounded-2xl p-4 text-center">
+              <p className="text-[#666] text-xs uppercase tracking-widest mb-1">Today&apos;s reward range</p>
+              <p className="text-white font-bold">+0.5% → +4.0%</p>
+            </div>
+            <button
+              onClick={() => router.push('/game')}
+              className="w-full bg-white text-[#0F0F0F] rounded-2xl py-5 font-bold text-xl cursor-pointer active:scale-95 transition-all duration-100"
+            >
+              Build Today&apos;s Stack
+            </button>
           </div>
         )}
 
-        <button
-          onClick={() => router.push('/game')}
-          className="w-full bg-[#1A1A1A] text-white rounded-2xl py-5 font-bold text-xl tracking-wide cursor-pointer active:scale-95 transition-all duration-100"
-        >
-          START
-        </button>
-
-        <a href="/leaderboard" className="text-[#6B7280] text-sm underline">
-          View leaderboard
+        {/* How it works */}
+        <a href="/how-it-works" className="text-[#444] text-sm underline">
+          How it works
         </a>
 
       </div>
