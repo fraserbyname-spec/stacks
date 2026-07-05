@@ -26,14 +26,11 @@ export default function Home() {
     return `$${n.toFixed(2)}`
   }
 
-  const formatInterest = (rate: number) => `+${(rate * 100).toFixed(1)}%`
-
   useEffect(() => {
     const stored = localStorage.getItem('stacks_balance')
     const played = localStorage.getItem('stacks_puzzles_played')
     const todayKey = getTodayKey()
     const todayData = localStorage.getItem(`stacks_result_${todayKey}`)
-
     if (stored) setBalance(Number(stored))
     if (played) setPuzzlesPlayed(Number(played))
     if (todayData) {
@@ -42,7 +39,6 @@ export default function Home() {
     }
   }, [])
 
-  // Countdown to next puzzle
   useEffect(() => {
     const tick = () => {
       const now = new Date()
@@ -65,24 +61,21 @@ export default function Home() {
     <main className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm flex flex-col items-center gap-8">
 
-        {/* Title */}
         <div className="text-center">
           <h1 className="text-5xl font-bold text-[#1A1A1A] tracking-tight">STACKS</h1>
-          <p className="text-[#6B7280] text-sm mt-2">Solve the puzzle. Earn interest on your balance.</p>
+          <p className="text-[#6B7280] text-base mt-2">Solve the puzzle. Earn interest on your balance.</p>
         </div>
 
-        {/* Balance */}
         <div className="w-full bg-[#F9FAFB] rounded-2xl p-6 text-center">
           <p className="text-[#6B7280] text-xs uppercase tracking-widest mb-1">Balance</p>
           <p className="text-[#1A1A1A] text-5xl font-bold tabular-nums">{formatBalance(balance)}</p>
-          <p className="text-[#9CA3AF] text-xs mt-2">{puzzlesPlayed} puzzle{puzzlesPlayed !== 1 ? 's' : ''} played</p>
+          <p className="text-[#9CA3AF] text-sm mt-2">{puzzlesPlayed} puzzle{puzzlesPlayed !== 1 ? 's' : ''} played</p>
         </div>
 
-        {/* Today's state */}
         {hasPlayedToday && todayResult ? (
           <div className="w-full flex flex-col gap-4">
             <div className="w-full bg-[#F9FAFB] rounded-2xl p-6 flex flex-col gap-3">
-              <p className="text-[#1A1A1A] font-bold text-center">
+              <p className="text-[#1A1A1A] font-bold text-center text-base">
                 {todayResult.solved ? 'Stack Complete ✓' : 'Stack Failed'}
               </p>
               {todayResult.solved ? (
@@ -114,32 +107,6 @@ export default function Home() {
             >
               Share Result
             </button>
-          </div>
-            <p className="text-[#1A1A1A] font-bold text-center">
-              {todayResult.solved ? 'Stack Complete ✓' : 'Stack Failed'}
-            </p>
-            {todayResult.solved ? (
-              <>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#6B7280]">Attempts used</span>
-                  <span className="text-[#1A1A1A] font-medium">{todayResult.attempts} / 8</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#6B7280]">Interest earned</span>
-                  <span className="text-green-600 font-medium">{formatInterest(todayResult.interest)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#6B7280]">Today&apos;s gain</span>
-                  <span className="text-green-600 font-medium">+{formatBalance(todayResult.earned)}</span>
-                </div>
-              </>
-            ) : (
-              <p className="text-[#6B7280] text-sm text-center">No growth today. Come back tomorrow.</p>
-            )}
-            <div className="border-t border-[#E5E7EB] pt-3 text-center">
-              <p className="text-[#6B7280] text-xs">Next Stack in</p>
-              <p className="text-[#1A1A1A] font-bold text-xl tabular-nums mt-1">{timeUntilNext}</p>
-            </div>
           </div>
         ) : (
           <div className="w-full flex flex-col gap-4">

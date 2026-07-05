@@ -46,6 +46,7 @@ body {
 .animate-balance-pulse {
   animation: balance-pulse 0.3s ease-out both;
 }
+
 @keyframes pop-in {
   0%   { transform: scale(1); }
   40%  { transform: scale(1.08); }
