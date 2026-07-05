@@ -26,7 +26,7 @@ type Guess = {
   misplaced: number
 }
 
-const TODAY_KEY = () => {
+const getTodayKey = () => {
   const now = new Date()
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`
 }
@@ -35,19 +35,18 @@ export default function Game() {
   const [current, setCurrent] = useState<string[]>([])
   const [guesses, setGuesses] = useState<Guess[]>([])
   const [gameOver, setGameOver] = useState(false)
-  const [solved, setSolved] = useState(false)
+  const [winning, setWinning] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [balance, setBalance] = useState<number>(10)
   const [loaded, setLoaded] = useState(false)
+  const [winRowIndex, setWinRowIndex] = useState<number | null>(null)
   const router = useRouter()
 
   useEffect(() => {
-    const todayKey = TODAY_KEY()
-    // Already completed today
+    const todayKey = getTodayKey()
     const todayResult = localStorage.getItem(`stacks_result_${todayKey}`)
     if (todayResult) { router.push('/result'); return }
 
-    // Restore in-progress game
     const inProgress = localStorage.getItem(`stacks_inprogress_${todayKey}`)
     if (inProgress) {
       const saved = JSON.parse(inProgress)
@@ -59,25 +58,24 @@ export default function Game() {
     setLoaded(true)
   }, [])
 
-  // Save in-progress state after every guess
   useEffect(() => {
     if (!loaded || guesses.length === 0) return
-    const todayKey = TODAY_KEY()
+    const todayKey = getTodayKey()
     localStorage.setItem(`stacks_inprogress_${todayKey}`, JSON.stringify({ guesses }))
   }, [guesses, loaded])
 
   const tapColour = (colourId: string) => {
-    if (gameOver || current.length >= 4) return
+    if (gameOver || winning || current.length >= 4) return
     setCurrent(prev => [...prev, colourId])
   }
 
   const tapSlot = (index: number) => {
-    if (gameOver) return
+    if (gameOver || winning) return
     setCurrent(prev => prev.filter((_, i) => i !== index))
   }
 
   const submitGuess = async () => {
-    if (current.length !== 4 || submitting || gameOver) return
+    if (current.length !== 4 || submitting || gameOver || winning) return
     setSubmitting(true)
     playSubmit()
 
@@ -98,14 +96,16 @@ export default function Game() {
       setCurrent([])
 
       if (data.solved) {
-        setSolved(true)
+        setWinRowIndex(newGuesses.length - 1)
+        setWinning(true)
         setGameOver(true)
         playSolve()
-        finishGame(true, newGuesses.length, newGuesses)
+        // Longer pause to let win animation breathe
+        setTimeout(() => finishGame(true, newGuesses.length, newGuesses), 2500)
       } else if (newGuesses.length >= 8) {
         setGameOver(true)
         playWrong()
-        finishGame(false, 8, newGuesses)
+        setTimeout(() => finishGame(false, 8, newGuesses), 800)
       } else {
         playWrong()
       }
@@ -116,7 +116,7 @@ export default function Game() {
   }
 
   const finishGame = (didSolve: boolean, attempts: number, finalGuesses: Guess[]) => {
-    const todayKey = TODAY_KEY()
+    const todayKey = getTodayKey()
     const interest = didSolve ? (INTEREST_RATES[attempts] ?? 0.005) : 0
     const currentBalance = Number(localStorage.getItem('stacks_balance') || 10)
     const earned = currentBalance * interest
@@ -132,10 +132,8 @@ export default function Game() {
       earned,
       guesses: finalGuesses
     }))
-    // Clear in-progress
     localStorage.removeItem(`stacks_inprogress_${todayKey}`)
-
-    setTimeout(() => router.push('/result'), didSolve ? 1500 : 500)
+    router.push('/result')
   }
 
   const colourHex = (id: string) => COLOURS.find(c => c.id === id)?.hex ?? '#E5E7EB'
@@ -143,25 +141,35 @@ export default function Game() {
   if (!loaded) return null
 
   return (
-    <main className="min-h-screen bg-white flex flex-col">
+    <main className={`min-h-screen flex flex-col transition-colors duration-700 ${winning ? 'bg-green-50' : 'bg-white'}`}>
 
       {/* Header */}
       <div className="px-4 py-4 flex items-center justify-between border-b border-[#E5E7EB]">
-        <button onClick={() => router.push('/')} className="text-[#6B7280] text-sm">← Home</button>
+        <button onClick={() => router.push('/')} className="text-[#6B7280] text-base">← Home</button>
         <h1 className="text-[#1A1A1A] font-bold text-lg">STACKS</h1>
-        <p className="text-[#6B7280] text-sm">{guesses.length} / 8</p>
+        <p className="text-[#6B7280] text-base">{guesses.length} / 8</p>
+      </div>
+
+      {/* Instruction */}
+      <div className="px-4 pt-4">
+        <p className="text-[#6B7280] text-base text-center">
+          Stack the colours to find the correct combination.
+        </p>
       </div>
 
       {/* Guess grid */}
-      <div className="flex-1 flex flex-col justify-center px-4 py-6 gap-3">
+      <div className="flex-1 flex flex-col justify-center px-4 py-4 gap-3">
         {Array(8).fill(null).map((_, rowIdx) => {
           const guess = guesses[rowIdx]
           const isCurrentRow = rowIdx === guesses.length && !gameOver
           const colours = guess?.colours ?? (isCurrentRow ? current : [])
+          const isWinRow = winRowIndex === rowIdx
 
           return (
-            <div key={rowIdx} className="flex items-center gap-3">
-              {/* 4 colour slots */}
+            <div
+              key={rowIdx}
+              className={`flex items-center gap-3 ${isWinRow ? 'animate-pop-in' : ''}`}
+            >
               <div className="flex gap-2 flex-1">
                 {Array(4).fill(null).map((_, colIdx) => {
                   const colour = colours[colIdx]
@@ -169,8 +177,9 @@ export default function Game() {
                     <div
                       key={colIdx}
                       onClick={() => isCurrentRow && colour ? tapSlot(colIdx) : undefined}
-                      className="flex-1 h-12 rounded-xl border-2 cursor-pointer transition-all duration-100"
+                      className={`flex-1 h-12 rounded-xl border-2 cursor-pointer transition-all duration-150 ${isWinRow ? 'animate-pop-in' : ''}`}
                       style={{
+                        animationDelay: isWinRow ? `${colIdx * 80}ms` : '0ms',
                         backgroundColor: colour ? colourHex(colour) : '#F9FAFB',
                         borderColor: colour ? colourHex(colour) : '#E5E7EB',
                       }}
@@ -179,12 +188,11 @@ export default function Game() {
                 })}
               </div>
 
-              {/* Feedback */}
               <div className="w-20 flex items-center justify-center gap-1">
                 {guess ? (
                   <>
-                    <span className="text-green-600 font-bold text-base">🟢{guess.correct}</span>
-                    <span className="text-orange-500 font-bold text-base">🟠{guess.misplaced}</span>
+                    <span className="text-green-600 font-bold text-lg">🟢{guess.correct}</span>
+                    <span className="text-orange-500 font-bold text-lg">🟠{guess.misplaced}</span>
                   </>
                 ) : isCurrentRow && current.length === 4 ? (
                   <button
@@ -200,6 +208,13 @@ export default function Game() {
           )
         })}
       </div>
+
+      {/* Win message */}
+      {winning && (
+        <div className="px-4 pb-4 text-center animate-pop-in">
+          <p className="text-green-600 text-xl font-bold">Stack locked in! ✓</p>
+        </div>
+      )}
 
       {/* Colour palette */}
       {!gameOver && (

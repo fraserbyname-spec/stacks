@@ -46,3 +46,23 @@ body {
 .animate-balance-pulse {
   animation: balance-pulse 0.3s ease-out both;
 }
+@keyframes pop-in {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.08); }
+  70%  { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fade-green {
+  0%   { background-color: white; }
+  30%  { background-color: #dcfce7; }
+  100% { background-color: white; }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.4s ease-out both;
+}
+
+.animate-win-flash {
+  animation: fade-green 1.5s ease-out both;
+}

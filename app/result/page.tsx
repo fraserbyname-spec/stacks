@@ -49,10 +49,8 @@ export default function Result() {
       const blacks = Array(4 - g.correct - g.misplaced).fill('⚫')
       return [...greens, ...oranges, ...blacks].join('')
     }).join('\n')
-    const summary = result.solved
-      ? `Solved in ${result.attempts} attempt${result.attempts !== 1 ? 's' : ''}. ${formatInterest(result.interest)} growth.`
-      : 'No Stack today.'
-    return `${summary}\n\n${rows}\n\nSolve puzzles and grow your balance at stacksgame.app`
+    const addedLine = result.solved ? `Added ${formatBalance(result.earned)}` : 'No growth today.'
+    return `STACKS\n${result.solved ? `Solved in ${result.attempts} attempt${result.attempts !== 1 ? 's' : ''}.` : 'Stack Failed.'}\n${addedLine}\nBalance ${formatBalance(balance)}\n\n${rows}\n\nJoin me at stacksgame.app`
   }
 
   const handleShare = () => {
@@ -67,7 +65,6 @@ export default function Result() {
     <main className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm flex flex-col items-center gap-6">
 
-        {/* Summary above grid */}
         <div className="text-center">
           <h1 className="text-[#1A1A1A] text-2xl font-bold">
             {result.solved
@@ -96,8 +93,8 @@ export default function Result() {
                 ))}
               </div>
               <div className="w-20 flex items-center gap-1">
-                <span className="text-green-600 font-bold text-base">🟢{guess.correct}</span>
-                <span className="text-orange-500 font-bold text-base">🟠{guess.misplaced}</span>
+                <span className="text-green-600 font-bold text-lg">🟢{guess.correct}</span>
+                <span className="text-orange-500 font-bold text-lg">🟠{guess.misplaced}</span>
               </div>
             </div>
           ))}
@@ -107,20 +104,20 @@ export default function Result() {
         <div className="w-full bg-[#F9FAFB] rounded-2xl p-5 flex flex-col gap-3">
           {result.solved ? (
             <>
-              <div className="flex justify-between text-sm">
-                <span className="text-[#6B7280]">Earned today</span>
+              <div className="flex justify-between text-base">
+                <span className="text-[#6B7280]">Added</span>
                 <span className="text-green-600 font-medium">+{formatBalance(result.earned)}</span>
               </div>
-              <div className="border-t border-[#E5E7EB] pt-3 flex justify-between text-sm">
-                <span className="text-[#6B7280]">New balance</span>
+              <div className="border-t border-[#E5E7EB] pt-3 flex justify-between text-base">
+                <span className="text-[#6B7280]">Balance</span>
                 <span className="text-[#1A1A1A] font-bold">{formatBalance(balance)}</span>
               </div>
             </>
           ) : (
             <>
-              <p className="text-[#6B7280] text-sm text-center">No growth today.</p>
-              <div className="flex justify-between text-sm">
-                <span className="text-[#6B7280]">Balance unchanged</span>
+              <p className="text-[#6B7280] text-base text-center">No growth today.</p>
+              <div className="flex justify-between text-base">
+                <span className="text-[#6B7280]">Balance</span>
                 <span className="text-[#1A1A1A] font-medium">{formatBalance(balance)}</span>
               </div>
             </>
@@ -135,7 +132,7 @@ export default function Result() {
         </button>
         <button
           onClick={() => router.push('/')}
-          className="text-[#9CA3AF] text-sm underline"
+          className="text-[#9CA3AF] text-base underline"
         >
           Home
         </button>

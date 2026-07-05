@@ -80,7 +80,41 @@ export default function Home() {
 
         {/* Today's state */}
         {hasPlayedToday && todayResult ? (
-          <div className="w-full bg-[#F9FAFB] rounded-2xl p-6 flex flex-col gap-3">
+          <div className="w-full flex flex-col gap-4">
+            <div className="w-full bg-[#F9FAFB] rounded-2xl p-6 flex flex-col gap-3">
+              <p className="text-[#1A1A1A] font-bold text-center">
+                {todayResult.solved ? 'Stack Complete ✓' : 'Stack Failed'}
+              </p>
+              {todayResult.solved ? (
+                <>
+                  <div className="flex justify-between text-base">
+                    <span className="text-[#6B7280]">Attempts used</span>
+                    <span className="text-[#1A1A1A] font-medium">{todayResult.attempts} / 8</span>
+                  </div>
+                  <div className="flex justify-between text-base">
+                    <span className="text-[#6B7280]">Added</span>
+                    <span className="text-green-600 font-medium">+{formatBalance(todayResult.earned)}</span>
+                  </div>
+                  <div className="flex justify-between text-base">
+                    <span className="text-[#6B7280]">Balance</span>
+                    <span className="text-[#1A1A1A] font-bold">{formatBalance(balance)}</span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-[#6B7280] text-base text-center">No growth today. Come back tomorrow.</p>
+              )}
+              <div className="border-t border-[#E5E7EB] pt-3 text-center">
+                <p className="text-[#6B7280] text-sm">Next Stack in</p>
+                <p className="text-[#1A1A1A] font-bold text-xl tabular-nums mt-1">{timeUntilNext}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push('/result')}
+              className="w-full bg-[#1A1A1A] text-white rounded-2xl py-4 font-bold text-base cursor-pointer active:scale-95 transition-all duration-100"
+            >
+              Share Result
+            </button>
+          </div>
             <p className="text-[#1A1A1A] font-bold text-center">
               {todayResult.solved ? 'Stack Complete ✓' : 'Stack Failed'}
             </p>
