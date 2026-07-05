@@ -50,7 +50,7 @@ export default function Result() {
       return [...greens, ...oranges, ...blacks].join('')
     }).join('\n')
     const addedLine = result.solved ? `Added ${formatBalance(result.earned)}` : 'No growth today.'
-    return `STACKS\n${result.solved ? `Solved in ${result.attempts} attempt${result.attempts !== 1 ? 's' : ''}.` : 'Stack Failed.'}\n${addedLine}\nBalance ${formatBalance(balance)}\n\n${rows}\n\nJoin me at stacksgame.app`
+    return `STACKS\n${result.solved ? `Solved in ${result.attempts} attempt${result.attempts !== 1 ? 's' : ''}.` : 'Stack Failed.'}\n${addedLine}\nBalance ${formatBalance(balance)}\n\n${rows}\n\nJoin me at www.stacksgame.app`
   }
 
   const handleShare = () => {
