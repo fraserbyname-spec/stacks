@@ -166,7 +166,7 @@ export default function Game() {
         </p>
       </div>
 
-      {/* Guess grid */}
+      {/* Guess grid — rows grow to fill all available space */}
       <div className="flex-1 flex flex-col px-4 gap-1.5 min-h-0 py-2">
         {Array(8).fill(null).map((_, rowIdx) => {
           const guess = guesses[rowIdx]
@@ -176,9 +176,9 @@ export default function Game() {
           return (
             <div
               key={rowIdx}
-              className={`flex items-center gap-2 ${isWinRow ? 'animate-pop-in' : ''}`}
+              className={`flex items-center gap-2 flex-1 min-h-0 ${isWinRow ? 'animate-pop-in' : ''}`}
             >
-              <div className="flex gap-1.5 flex-1">
+              <div className="flex gap-1.5 flex-1 h-full">
                 {Array(4).fill(null).map((_, colIdx) => {
                   const guessColour = guess?.colours[colIdx]
                   const currentColour = isCurrentRow ? current[colIdx] : null
@@ -189,7 +189,7 @@ export default function Game() {
                     <div
                       key={colIdx}
                       onClick={() => isCurrentRow ? tapSlot(colIdx) : undefined}
-                      className={`flex-1 h-10 rounded-lg border-2 transition-all duration-100 ${
+                      className={`flex-1 rounded-lg border-2 transition-all duration-100 ${
                         isCurrentRow ? 'cursor-pointer' : ''
                       } ${isSelected ? 'border-[#1A1A1A] scale-105' : 'border-[#E5E7EB]'}`}
                       style={{
@@ -231,7 +231,7 @@ export default function Game() {
 
       {/* Colour palette */}
       {!gameOver && (
-        <div className="px-4 pt-2 pb-3 border-t border-[#E5E7EB] shrink-0">
+        <div className="px-4 pt-2 pb-4 border-t border-[#E5E7EB] shrink-0">
           <div className="grid grid-cols-4 gap-2">
             {COLOURS.map(colour => {
               const alreadyUsed = current.includes(colour.id)
