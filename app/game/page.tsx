@@ -159,15 +159,15 @@ export default function Game() {
         <p className="text-[#6B7280] text-sm">{guesses.length} / 8</p>
       </div>
 
-      {/* Instruction */}
-      <div className="px-4 pt-2 pb-1 shrink-0">
+     {/* Instruction */}
+      <div className="px-4 pt-1 pb-1 shrink-0">
         <p className="text-[#9CA3AF] text-sm text-center">
           Stack the colours to find the correct combination.
         </p>
       </div>
 
       {/* Guess grid */}
-      <div className="flex-1 flex flex-col justify-center px-4 gap-1.5 min-h-0">
+      <div className="flex-1 flex flex-col px-4 gap-1.5 min-h-0 py-2">
         {Array(8).fill(null).map((_, rowIdx) => {
           const guess = guesses[rowIdx]
           const isCurrentRow = rowIdx === guesses.length && !gameOver
@@ -231,7 +231,7 @@ export default function Game() {
 
       {/* Colour palette */}
       {!gameOver && (
-        <div className="px-4 pt-2 pb-4 border-t border-[#E5E7EB] shrink-0">
+        <div className="px-4 pt-2 pb-3 border-t border-[#E5E7EB] shrink-0">
           <div className="grid grid-cols-4 gap-2">
             {COLOURS.map(colour => {
               const alreadyUsed = current.includes(colour.id)
