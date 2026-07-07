@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 const COLOUR_HEX: Record<string, string> = {
   RED: '#E74C3C', BLUE: '#2980B9', YELLOW: '#F1C40F',
   GREEN: '#27AE60', PURPLE: '#8E44AD', ORANGE: '#E67E22',
-  WHITE: '#F5F5F5', TEAL: '#00BCD4',
+  BLACK: '#1A1A1A', TEAL: '#00BCD4',
 }
 
 export default function Result() {

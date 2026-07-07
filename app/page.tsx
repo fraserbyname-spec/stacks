@@ -63,7 +63,7 @@ export default function Home() {
 
         <div className="text-center">
           <h1 className="text-5xl font-bold text-[#1A1A1A] tracking-tight">STACKS</h1>
-          <p className="text-[#6B7280] text-base mt-2">Solve the puzzle. Earn interest on your balance.</p>
+          <p className="text-[#6B7280] text-base mt-2">Build your stack. One puzzle a day.</p>
         </div>
 
         <div className="w-full bg-[#F9FAFB] rounded-2xl p-6 text-center">

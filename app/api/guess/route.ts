@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-const COLOURS = ['RED', 'BLUE', 'YELLOW', 'GREEN', 'PURPLE', 'ORANGE', 'WHITE', 'TEAL']
+const COLOURS = ['RED', 'BLUE', 'YELLOW', 'GREEN', 'PURPLE', 'ORANGE', 'BLACK', 'TEAL']
 
 // Seeded random using date string as seed
 const seededRandom = (seed: string) => {
