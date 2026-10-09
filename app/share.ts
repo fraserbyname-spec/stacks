@@ -3,7 +3,7 @@ export async function shareBalance(
   rank: number | null
 ): Promise<'shared' | 'copied' | 'cancelled'> {
   const rankText = rank !== null && rank <= 10 ? ` I'm #${rank} on the leaderboard.` : ''
-  const message = `I'm sitting on $${balance.toLocaleString()} on Stacks.${rankText} Can you beat me? https://stacksgame.app`
+  const message = `💸 I'm sitting on $${balance.toLocaleString()} on Stacks.${rankText} Can you beat me? https://stacksgame.app`
 
   if (typeof navigator.share === 'function') {
     try {
