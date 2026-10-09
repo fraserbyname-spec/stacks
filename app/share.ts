@@ -3,17 +3,16 @@ export async function shareBalance(
   rank: number | null
 ): Promise<'shared' | 'copied' | 'cancelled'> {
   const rankText = rank !== null && rank <= 10 ? ` I'm #${rank} on the leaderboard.` : ''
-  const text = `I'm sitting on $${balance.toLocaleString()} on Stacks.${rankText} Can you beat me?`
-  const url = 'https://stacksgame.app'
+  const message = `I'm sitting on $${balance.toLocaleString()} on Stacks.${rankText} Can you beat me? https://stacksgame.app`
 
   if (typeof navigator.share === 'function') {
     try {
-      await navigator.share({ text, url })
+      await navigator.share({ text: message })
       return 'shared'
     } catch {
       return 'cancelled'
     }
   }
-  await navigator.clipboard.writeText(`${text} ${url}`)
+  await navigator.clipboard.writeText(message)
   return 'copied'
 }
