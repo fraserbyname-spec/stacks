@@ -45,8 +45,8 @@ export default function Leaderboard() {
         <div className='w-16' />
       </div>
 
-      <h1 className='mt-3 text-[28px] font-extrabold'>Biggest balances</h1>
-      <p className='text-base text-[#6B7280]'>Current balance, top 10 players</p>
+      <h1 className='mt-3 text-center text-[24px] font-extrabold'>Biggest Current Balances</h1>
+<p className='text-center text-base text-[#6B7280]'>Top 10 Players</p>
 
       <div className='mt-4 overflow-hidden rounded-xl border border-[#E5E7EB] bg-[#F9FAFB]'>
         {loaded && rows.length === 0 && (
