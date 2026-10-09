@@ -6,7 +6,7 @@ export async function shareBalance(
   const text = `I'm sitting on $${balance.toLocaleString()} on Stacks.${rankText} Can you beat me?`
   const url = 'https://stacksgame.app'
 
-  if ('share' in navigator) {
+  if (typeof navigator.share === 'function') {
     try {
       await navigator.share({ text, url })
       return 'shared'
