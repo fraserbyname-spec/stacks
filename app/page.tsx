@@ -1,128 +1,327 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
+import { playTick, playWin, playLose } from './sounds'
+import { shareBalance } from './share'
+
+type Player = { id: string; secret: string; name: string }
+type Colour = 'red' | 'black'
+type Phase = 'idle' | 'spinning' | 'revealed'
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+const money = (n: number) => '$' + n.toLocaleString()
+const post = (url: string, body: object) =>
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
 
 export default function Home() {
-  const [balance, setBalance] = useState<number>(10)
-  const [puzzlesPlayed, setPuzzlesPlayed] = useState<number>(0)
-  const [hasPlayedToday, setHasPlayedToday] = useState(false)
-  const [todayResult, setTodayResult] = useState<{
-    solved: boolean
-    attempts: number
-    interest: number
-    earned: number
-  } | null>(null)
-  const [timeUntilNext, setTimeUntilNext] = useState('')
-  const router = useRouter()
+  const [ready, setReady] = useState(false)
+  const [player, setPlayer] = useState<Player | null>(null)
+  const [balance, setBalance] = useState<number | null>(null)
+  const [rank, setRank] = useState<number | null>(null)
+  const [tenth, setTenth] = useState<number | null>(null)
+  const [wager, setWager] = useState(10)
+  const [phase, setPhase] = useState<Phase>('idle')
+  const [pick, setPick] = useState<Colour | null>(null)
+  const [result, setResult] = useState<Colour | null>(null)
+  const [won, setWon] = useState(false)
+  const [lastBet, setLastBet] = useState(0)
+  const [message, setMessage] = useState('')
+  const [nameInput, setNameInput] = useState('')
+  const [note, setNote] = useState('')
 
-  const getTodayKey = () => {
-    const now = new Date()
-    return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`
-  }
-
-  const formatBalance = (n: number) => {
-    if (n >= 1000) return `$${Math.round(n).toLocaleString()}`
-    return `$${n.toFixed(2)}`
-  }
-
-  useEffect(() => {
-    const stored = localStorage.getItem('stacks_balance')
-    const played = localStorage.getItem('stacks_puzzles_played')
-    const todayKey = getTodayKey()
-    const todayData = localStorage.getItem(`stacks_result_${todayKey}`)
-    if (stored) setBalance(Number(stored))
-    if (played) setPuzzlesPlayed(Number(played))
-    if (todayData) {
-      setHasPlayedToday(true)
-      setTodayResult(JSON.parse(todayData))
+  const refreshBoard = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/leaderboard?id=${id}`)
+      const data = await res.json()
+      setRank(data.me ? data.me.rank : null)
+      setTenth(data.tenth)
+    } catch {
+      // rank is a nice extra, so ignore errors
     }
   }, [])
 
+  const loadPlayer = useCallback(
+    async (p: Player) => {
+      const res = await post('/api/player', { action: 'load', id: p.id, secret: p.secret })
+      if (!res.ok) {
+        localStorage.removeItem('stacks_player')
+        setPlayer(null)
+        return
+      }
+      const data = await res.json()
+      setBalance(data.balance)
+      refreshBoard(p.id)
+    },
+    [refreshBoard]
+  )
+
   useEffect(() => {
-    const tick = () => {
-      const now = new Date()
-      const next = new Date()
-      next.setUTCHours(24, 0, 0, 0)
-      const diff = next.getTime() - now.getTime()
-      const h = Math.floor(diff / 3600000)
-      const m = Math.floor((diff % 3600000) / 60000)
-      const s = Math.floor((diff % 60000) / 1000)
-      setTimeUntilNext(
-        `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-      )
+    const saved = localStorage.getItem('stacks_player')
+    const lastWager = Number(localStorage.getItem('stacks_last_wager'))
+    if (lastWager >= 1) setWager(lastWager)
+    if (saved) {
+      try {
+        const p = JSON.parse(saved) as Player
+        setPlayer(p)
+        loadPlayer(p)
+      } catch {
+        localStorage.removeItem('stacks_player')
+      }
     }
-    tick()
-    const interval = setInterval(tick, 1000)
-    return () => clearInterval(interval)
-  }, [])
+    setReady(true)
+  }, [loadPlayer])
+
+  async function createPlayer() {
+    setMessage('')
+    const res = await post('/api/player', { action: 'create', name: nameInput })
+    const data = await res.json()
+    if (!res.ok) {
+      setMessage(data.error)
+      return
+    }
+    const p: Player = { id: data.id, secret: data.secret, name: data.name }
+    localStorage.setItem('stacks_player', JSON.stringify(p))
+    setPlayer(p)
+    setBalance(data.balance)
+    refreshBoard(p.id)
+  }
+
+  async function spin(colour: Colour) {
+    if (!player || balance === null || phase === 'spinning') return
+    const amount = Math.min(wager, balance)
+    if (amount < 1) return
+
+    localStorage.setItem('stacks_last_wager', String(amount))
+    setWager(amount)
+    setLastBet(amount)
+    setPick(colour)
+    setResult(null)
+    setMessage('')
+    setNote('')
+    setPhase('spinning')
+
+    try {
+      // Send the bet now, and let the circle pulse 3 times while we wait.
+      const request = post('/api/bet', {
+        id: player.id,
+        secret: player.secret,
+        wager: amount,
+        pick: colour,
+      })
+      for (let i = 0; i < 3; i++) {
+        playTick(i)
+        await sleep(450)
+      }
+      const res = await request
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Something went wrong')
+
+      setResult(data.result)
+      setWon(data.won)
+      setBalance(data.balance)
+      setPhase('revealed')
+      if (data.won) playWin()
+      else playLose()
+      refreshBoard(player.id)
+    } catch (e) {
+      setPhase('idle')
+      setMessage(e instanceof Error ? e.message : 'Something went wrong')
+    }
+  }
+
+  async function restart() {
+    if (!player) return
+    const res = await post('/api/player', {
+      action: 'restart',
+      id: player.id,
+      secret: player.secret,
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      setMessage(data.error)
+      return
+    }
+    setBalance(data.balance)
+    setPhase('idle')
+    setResult(null)
+    setMessage('')
+    refreshBoard(player.id)
+  }
+
+  async function share() {
+    if (balance === null) return
+    const outcome = await shareBalance(balance, rank)
+    if (outcome === 'copied') setNote('Copied to clipboard')
+  }
+
+  if (!ready) return <main className='min-h-dvh bg-white' />
+
+  if (!player) {
+    return (
+      <main className='mx-auto flex min-h-dvh max-w-[430px] flex-col justify-center bg-white px-5 text-[#1A1A1A]'>
+        <div className='text-lg font-extrabold tracking-[3px]'>STACKS</div>
+        <h1 className='mt-6 text-3xl font-extrabold'>Red or black?</h1>
+        <p className='mt-2 text-base text-[#6B7280]'>
+          Start with $50 and see how big you can make it. What should we call you?
+        </p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            createPlayer()
+          }}
+          className='mt-6 flex flex-col gap-3'
+        >
+          <input
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            maxLength={16}
+            placeholder='Your name'
+            aria-label='Your name'
+            className='h-12 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 text-base outline-none focus:border-[#1A1A1A]'
+          />
+          {message && <p className='text-base text-[#C62828]'>{message}</p>}
+          <button type='submit' className='h-12 rounded-xl bg-[#1A1A1A] text-base font-bold text-white'>
+            Start playing
+          </button>
+        </form>
+      </main>
+    )
+  }
+
+  const busy = phase === 'spinning'
+  const bal = balance ?? 0
+  const amount = Math.min(wager, bal)
+  const chips: [string, number][] = [
+    ['$5', 5],
+    ['$10', 10],
+    ['$25', 25],
+    ['Half', Math.floor(bal / 2)],
+    ['All in', bal],
+  ]
+  const circle =
+    phase === 'revealed' && result
+      ? `${result === 'red' ? 'bg-[#C62828]' : 'bg-[#1A1A1A]'} text-white animate-reveal`
+      : phase === 'spinning'
+        ? 'border-2 border-dashed border-[#6B7280] text-[#6B7280] animate-pulse-ring'
+        : 'border-2 border-dashed border-[#E5E7EB] text-[#9CA3AF]'
 
   return (
-    <main className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-sm flex flex-col items-center gap-8">
+    <main className='mx-auto flex min-h-dvh max-w-[430px] flex-col bg-white px-5 pb-7 pt-5 text-[#1A1A1A]'>
+      <div className='flex items-center justify-between'>
+        <div className='text-lg font-extrabold tracking-[3px]'>STACKS</div>
+        <Link href='/leaderboard' className='flex h-11 items-center rounded-full border border-[#E5E7EB] px-4 text-base font-semibold'>
+          Leaderboard
+        </Link>
+      </div>
 
-        <div className="text-center">
-          <h1 className="text-5xl font-bold text-[#1A1A1A] tracking-tight">STACKS</h1>
-          <p className="text-[#6B7280] text-base mt-2">Build your stack. One puzzle a day.</p>
+      <div className='mt-7 text-center'>
+        <div className='text-base text-[#6B7280]'>{`${player.name}'s bank`}</div>
+        <div className='text-[72px] font-extrabold leading-[1.1]'>
+          {balance === null ? '...' : money(balance)}
         </div>
-
-        <div className="w-full bg-[#F9FAFB] rounded-2xl p-6 text-center">
-          <p className="text-[#6B7280] text-xs uppercase tracking-widest mb-1">Balance</p>
-          <p className="text-[#1A1A1A] text-5xl font-bold tabular-nums">{formatBalance(balance)}</p>
-          <p className="text-[#9CA3AF] text-sm mt-2">{puzzlesPlayed} puzzle{puzzlesPlayed !== 1 ? 's' : ''} played</p>
-        </div>
-
-        {hasPlayedToday && todayResult ? (
-          <div className="w-full flex flex-col gap-4">
-            <div className="w-full bg-[#F9FAFB] rounded-2xl p-6 flex flex-col gap-3">
-              <p className="text-[#1A1A1A] font-bold text-center text-base">
-                {todayResult.solved ? 'Stack Complete ✓' : 'Stack Failed'}
-              </p>
-              {todayResult.solved ? (
-                <>
-                  <div className="flex justify-between text-base">
-                    <span className="text-[#6B7280]">Attempts used</span>
-                    <span className="text-[#1A1A1A] font-medium">{todayResult.attempts} / 8</span>
-                  </div>
-                  <div className="flex justify-between text-base">
-                    <span className="text-[#6B7280]">Added</span>
-                    <span className="text-green-600 font-medium">+{formatBalance(todayResult.earned)}</span>
-                  </div>
-                  <div className="flex justify-between text-base">
-                    <span className="text-[#6B7280]">Balance</span>
-                    <span className="text-[#1A1A1A] font-bold">{formatBalance(balance)}</span>
-                  </div>
-                </>
-              ) : (
-                <p className="text-[#6B7280] text-base text-center">No growth today. Come back tomorrow.</p>
-              )}
-              <div className="border-t border-[#E5E7EB] pt-3 text-center">
-                <p className="text-[#6B7280] text-sm">Next Stack in</p>
-                <p className="text-[#1A1A1A] font-bold text-xl tabular-nums mt-1">{timeUntilNext}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => router.push('/result')}
-              className="w-full bg-[#1A1A1A] text-white rounded-2xl py-4 font-bold text-base cursor-pointer active:scale-95 transition-all duration-100"
-            >
-              Share Result
-            </button>
-          </div>
-        ) : (
-          <div className="w-full flex flex-col gap-4">
-            <button
-              onClick={() => router.push('/game')}
-              className="w-full bg-[#1A1A1A] text-white rounded-2xl py-5 font-bold text-xl cursor-pointer active:scale-95 transition-all duration-100"
-            >
-              Build Today&apos;s Stack
-            </button>
+        {rank !== null && (
+          <div className='mt-1 text-base text-[#9CA3AF]'>
+            Rank #{rank}
+            {rank > 10 && tenth !== null ? ` · Top 10 starts at ${money(tenth)}` : ''}
           </div>
         )}
+      </div>
 
-        <a href="/how-it-works" className="text-[#9CA3AF] text-sm underline">
-          How it works
-        </a>
+      <div
+        className={`mx-auto mt-7 flex h-[120px] w-[120px] items-center justify-center rounded-full text-[40px] font-extrabold ${circle}`}
+      >
+        {phase === 'revealed' && result ? (
+          <span className='text-[22px] tracking-widest'>{result.toUpperCase()}</span>
+        ) : (
+          '?'
+        )}
+      </div>
 
+      <div className='mt-5 min-h-16 text-center'>
+        {phase === 'revealed' && result ? (
+          <>
+            <div className={`text-[28px] font-extrabold ${won ? 'text-green-600' : 'text-[#C62828]'}`}>
+              {won ? `You win +${money(lastBet)}` : `You lose -${money(lastBet)}`}
+            </div>
+            <div className='text-base text-[#6B7280]'>You picked {pick}</div>
+          </>
+        ) : message ? (
+          <div className='text-base text-[#C62828]'>{message}</div>
+        ) : null}
+      </div>
+
+      <div className='mt-4'>
+        <div className='flex items-baseline justify-between'>
+          <label htmlFor='wager' className='text-base text-[#6B7280]'>Wager</label>
+          <div className='flex items-baseline text-[32px] font-extrabold'>
+            <span>$</span>
+            <input
+              id='wager'
+              type='number'
+              inputMode='numeric'
+              min={1}
+              disabled={busy}
+              value={amount > 0 ? amount : ''}
+              onChange={(e) => setWager(Math.max(0, Math.floor(Number(e.target.value)) || 0))}
+              className='w-28 bg-transparent text-right outline-none'
+            />
+          </div>
+        </div>
+        <div className='mt-2.5 flex gap-2'>
+          {chips.map(([label, value]) => (
+            <button
+              key={label}
+              disabled={busy || bal < 1}
+              onClick={() => setWager(Math.max(1, value))}
+              className={`h-11 flex-1 rounded-[10px] border text-base font-semibold ${
+                amount === value
+                  ? 'border-[#1A1A1A] bg-[#1A1A1A] text-white'
+                  : 'border-[#E5E7EB] bg-[#F9FAFB] text-[#1A1A1A]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className='mt-auto flex flex-col gap-3 pt-6'>
+        {balance === 0 ? (
+          <button onClick={restart} className='h-24 rounded-2xl bg-[#1A1A1A] text-xl font-extrabold text-white'>
+            Out of money. Start again with $50
+          </button>
+        ) : (
+          <>
+            <p className='text-center text-base text-[#6B7280]'>
+              {busy ? 'Spinning...' : 'Pick a colour to spin'}
+            </p>
+            <div className='flex gap-3'>
+              <button
+                onClick={() => spin('red')}
+                disabled={busy || balance === null || amount < 1}
+                className='h-24 flex-1 rounded-2xl bg-[#C62828] text-2xl font-extrabold tracking-widest text-white disabled:opacity-50'
+              >
+                RED
+              </button>
+              <button
+                onClick={() => spin('black')}
+                disabled={busy || balance === null || amount < 1}
+                className='h-24 flex-1 rounded-2xl bg-[#1A1A1A] text-2xl font-extrabold tracking-widest text-white disabled:opacity-50'
+              >
+                BLACK
+              </button>
+            </div>
+          </>
+        )}
+        <button onClick={share} className='h-12 rounded-xl border border-[#E5E7EB] bg-white text-base font-semibold'>
+          Share my balance
+        </button>
+        {note && <p className='text-center text-base text-[#6B7280]'>{note}</p>}
       </div>
     </main>
   )

@@ -1,80 +1,46 @@
 let ctx: AudioContext | null = null
 
-const getCtx = () => {
-  if (!ctx) ctx = new AudioContext()
+function getCtx() {
+  if (typeof window === 'undefined') return null
+  if (!ctx) {
+    const AC =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    ctx = new AC()
+  }
   if (ctx.state === 'suspended') ctx.resume()
   return ctx
 }
 
-// Wrong guess — collapse sound, descending rumble
-export const playWrong = () => {
+function tone(freq: number, delay: number, length: number, type: OscillatorType, volume: number) {
   const c = getCtx()
-  const t = c.currentTime
-
+  if (!c) return
+  const t = c.currentTime + delay
   const osc = c.createOscillator()
-  osc.type = 'sawtooth'
-  osc.frequency.setValueAtTime(180, t)
-  osc.frequency.exponentialRampToValueAtTime(60, t + 0.25)
-
   const gain = c.createGain()
-  gain.gain.setValueAtTime(0.18, t)
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3)
-
+  osc.type = type
+  osc.frequency.setValueAtTime(freq, t)
+  gain.gain.setValueAtTime(0.0001, t)
+  gain.gain.exponentialRampToValueAtTime(volume, t + 0.01)
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + length)
   osc.connect(gain)
   gain.connect(c.destination)
   osc.start(t)
-  osc.stop(t + 0.3)
+  osc.stop(t + length + 0.05)
 }
 
-// Correct solve — lock-in sound, four stacked clicks then chime
-export const playSolve = () => {
-  const c = getCtx()
+const WIN_NOTES = [523.25, 659.25, 783.99, 1046.5, 1318.51]
+const SPARKLE = [1568, 2093, 2637]
 
-  // Four quick lock clicks
-  ;[0, 0.08, 0.16, 0.24].forEach((delay, i) => {
-    const osc = c.createOscillator()
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(300 + i * 60, 0)
-    const gain = c.createGain()
-    const t = c.currentTime + delay
-    gain.gain.setValueAtTime(0.15, t)
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07)
-    osc.connect(gain)
-    gain.connect(c.destination)
-    osc.start(t)
-    osc.stop(t + 0.07)
-  })
+// One rising tick per pulse
+export const playTick = (i: number) => tone(330 + i * 110, 0, 0.14, 'triangle', 0.14)
 
-  // Rising chime after clicks
-  const notes = [523, 659, 784, 1047]
-  notes.forEach((freq, i) => {
-    const osc = c.createOscillator()
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(freq, 0)
-    const gain = c.createGain()
-    const t = c.currentTime + 0.35 + i * 0.1
-    gain.gain.setValueAtTime(0, t)
-    gain.gain.linearRampToValueAtTime(0.18, t + 0.04)
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5)
-    osc.connect(gain)
-    gain.connect(c.destination)
-    osc.start(t)
-    osc.stop(t + 0.5)
-  })
+export const playWin = () => {
+  WIN_NOTES.forEach((f, i) => tone(f, i * 0.07, 0.3, 'triangle', 0.16))
+  SPARKLE.forEach((f, i) => tone(f, 0.38 + i * 0.06, 0.45, 'sine', 0.07))
 }
 
-// Submit guess — soft click
-export const playSubmit = () => {
-  const c = getCtx()
-  const t = c.currentTime
-  const osc = c.createOscillator()
-  osc.type = 'sine'
-  osc.frequency.setValueAtTime(400, t)
-  const gain = c.createGain()
-  gain.gain.setValueAtTime(0.1, t)
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08)
-  osc.connect(gain)
-  gain.connect(c.destination)
-  osc.start(t)
-  osc.stop(t + 0.08)
+export const playLose = () => {
+  tone(247, 0, 0.25, 'sawtooth', 0.08)
+  tone(185, 0.18, 0.4, 'sawtooth', 0.08)
 }
