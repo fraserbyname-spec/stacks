@@ -9,6 +9,11 @@ type Player = { id: string; secret: string; name: string }
 type Colour = 'red' | 'black'
 type Phase = 'idle' | 'spinning' | 'revealed'
 
+const MAX_HISTORY = 10
+const HISTORY_KEY = 'stacks_history'
+const SIZES = [36, 32, 28, 25, 23, 21, 19, 17, 16, 15]
+const OPACITIES = [1, 0.85, 0.75, 0.65, 0.55, 0.5, 0.45, 0.4, 0.35, 0.3]
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 const money = (n: number) => '$' + n.toLocaleString()
 const post = (url: string, body: object) =>
@@ -33,6 +38,8 @@ export default function Home() {
   const [message, setMessage] = useState('')
   const [nameInput, setNameInput] = useState('')
   const [note, setNote] = useState('')
+  const [history, setHistory] = useState<Colour[]>([])
+  const [historyTick, setHistoryTick] = useState(0)
 
   const refreshBoard = useCallback(async (id: string) => {
     try {
@@ -64,6 +71,18 @@ export default function Home() {
     const saved = localStorage.getItem('stacks_player')
     const lastWager = Number(localStorage.getItem('stacks_last_wager'))
     if (lastWager >= 1) setWager(lastWager)
+    try {
+      const savedHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')
+      if (Array.isArray(savedHistory)) {
+        setHistory(
+          savedHistory
+            .filter((c): c is Colour => c === 'red' || c === 'black')
+            .slice(0, MAX_HISTORY)
+        )
+      }
+    } catch {
+      localStorage.removeItem(HISTORY_KEY)
+    }
     if (saved) {
       try {
         const p = JSON.parse(saved) as Player
@@ -75,6 +94,15 @@ export default function Home() {
     }
     setReady(true)
   }, [loadPlayer])
+
+  function addToHistory(colour: Colour) {
+    setHistory((prev) => {
+      const next = [colour, ...prev].slice(0, MAX_HISTORY)
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(next))
+      return next
+    })
+    setHistoryTick((t) => t + 1)
+  }
 
   async function createPlayer() {
     setMessage('')
@@ -121,13 +149,16 @@ export default function Home() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Something went wrong')
 
-      setResult(data.result)
+      const outcome = data.result as Colour
+      setResult(outcome)
       setWon(data.won)
       setBalance(data.balance)
       setPhase('revealed')
       if (data.won) playWin()
       else playLose()
       refreshBoard(player.id)
+      // Add to the history strip just after the big circle has popped
+      setTimeout(() => addToHistory(outcome), 450)
     } catch (e) {
       setPhase('idle')
       setMessage(e instanceof Error ? e.message : 'Something went wrong')
@@ -219,7 +250,7 @@ export default function Home() {
         </Link>
       </div>
 
-      <div className='mt-7 text-center'>
+      <div className='mt-5 text-center'>
         <div className='text-base text-[#6B7280]'>{`${player.name}'s bank`}</div>
         <div className='text-[72px] font-extrabold leading-[1.1]'>
           {balance === null ? '...' : money(balance)}
@@ -227,13 +258,13 @@ export default function Home() {
         {rank !== null && (
           <div className='mt-1 text-base text-[#9CA3AF]'>
             Rank #{rank}
-            {rank > 10 && tenth !== null ? ` · Top 10 starts at ${money(tenth)}` : ''}
+            {rank > 10 && tenth !== null ? ` \u00b7 Top 10 starts at ${money(tenth)}` : ''}
           </div>
         )}
       </div>
 
       <div
-        className={`mx-auto mt-7 flex h-[120px] w-[120px] items-center justify-center rounded-full text-[40px] font-extrabold ${circle}`}
+        className={`mx-auto mt-5 flex h-[120px] w-[120px] items-center justify-center rounded-full text-[40px] font-extrabold ${circle}`}
       >
         {phase === 'revealed' && result ? (
           <span className='text-[22px] tracking-widest'>{result.toUpperCase()}</span>
@@ -242,7 +273,7 @@ export default function Home() {
         )}
       </div>
 
-      <div className='mt-5 min-h-16 text-center'>
+      <div className='mt-4 min-h-[60px] text-center'>
         {phase === 'revealed' && result ? (
           <>
             <div className={`text-[28px] font-extrabold ${won ? 'text-green-600' : 'text-[#C62828]'}`}>
@@ -255,7 +286,7 @@ export default function Home() {
         ) : null}
       </div>
 
-      <div className='mt-4'>
+      <div className='mt-3'>
         <div className='flex items-baseline justify-between'>
           <label htmlFor='wager' className='text-base text-[#6B7280]'>Wager</label>
           <div className='flex items-baseline text-[32px] font-extrabold'>
@@ -287,6 +318,42 @@ export default function Home() {
               {label}
             </button>
           ))}
+        </div>
+
+        <div className='mx-auto mt-5 w-fit'>
+          <div className='flex h-11 items-center gap-2'>
+            {SIZES.map((size, i) => {
+              const colour = history[i]
+              if (!colour) {
+                return (
+                  <div
+                    key={`empty-${i}`}
+                    style={{ width: size, height: size }}
+                    className='shrink-0 rounded-full border-2 border-dashed border-[#E5E7EB]'
+                  />
+                )
+              }
+              return (
+                <div
+                  key={`${i}-${historyTick}`}
+                  style={{
+                    width: size,
+                    height: size,
+                    opacity: OPACITIES[i],
+                    outline: i === 0 ? '1.5px solid #1A1A1A' : undefined,
+                    outlineOffset: i === 0 ? 3 : undefined,
+                  }}
+                  className={`shrink-0 rounded-full ${
+                    colour === 'red' ? 'bg-[#C62828]' : 'bg-[#1A1A1A]'
+                  } ${historyTick > 0 ? 'animate-strip' : ''}`}
+                />
+              )
+            })}
+          </div>
+          <div className='mt-2 flex justify-between text-sm text-[#9CA3AF]'>
+            <span>Latest</span>
+            <span>Oldest</span>
+          </div>
         </div>
       </div>
 

@@ -78,3 +78,9 @@ body {
 }
 .animate-pulse-ring { animation: pulse-ring 0.45s ease-in-out 3; }
 .animate-reveal { animation: reveal 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+
+@keyframes strip-in {
+  from { transform: translateX(-26px) scale(0.6); opacity: 0; }
+  to { transform: none; }
+}
+.animate-strip { animation: strip-in 0.3s ease-out both; }
