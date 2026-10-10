@@ -27,6 +27,7 @@ export async function POST(req: Request) {
       .insert({ name, secret_hash: hashSecret(secret), balance: START_BALANCE })
       .select('id, name, balance')
       .single()
+    if (error?.code === '23505') return fail('That name is taken. Try another.')
     if (error || !data) return fail('Could not create player', 500)
     return NextResponse.json({ id: data.id, secret, name: data.name, balance: data.balance })
   }

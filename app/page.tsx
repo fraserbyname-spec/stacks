@@ -40,7 +40,7 @@ export default function Home() {
   const [note, setNote] = useState('')
   const [history, setHistory] = useState<Colour[]>([])
   const [historyTick, setHistoryTick] = useState(0)
-
+  const [creating, setCreating] = useState(false)
   const refreshBoard = useCallback(async (id: string) => {
     try {
       const res = await fetch(`/api/leaderboard?id=${id}`)
@@ -104,19 +104,27 @@ export default function Home() {
     setHistoryTick((t) => t + 1)
   }
 
-  async function createPlayer() {
+    async function createPlayer() {
+    if (creating) return
+    setCreating(true)
     setMessage('')
-    const res = await post('/api/player', { action: 'create', name: nameInput })
-    const data = await res.json()
-    if (!res.ok) {
-      setMessage(data.error)
-      return
+    try {
+      const res = await post('/api/player', { action: 'create', name: nameInput })
+      const data = await res.json()
+      if (!res.ok) {
+        setMessage(data.error)
+        return
+      }
+      const p: Player = { id: data.id, secret: data.secret, name: data.name }
+      localStorage.setItem('stacks_player', JSON.stringify(p))
+      setPlayer(p)
+      setBalance(data.balance)
+      refreshBoard(p.id)
+    } catch {
+      setMessage('Something went wrong. Try again.')
+    } finally {
+      setCreating(false)
     }
-    const p: Player = { id: data.id, secret: data.secret, name: data.name }
-    localStorage.setItem('stacks_player', JSON.stringify(p))
-    setPlayer(p)
-    setBalance(data.balance)
-    refreshBoard(p.id)
   }
 
   async function spin(colour: Colour) {
@@ -216,9 +224,13 @@ export default function Home() {
             className='h-12 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 text-base outline-none focus:border-[#1A1A1A]'
           />
           {message && <p className='text-base text-[#C62828]'>{message}</p>}
-          <button type='submit' className='h-12 rounded-xl bg-[#1A1A1A] text-base font-bold text-white'>
-            Start playing
-          </button>
+          <button
+  type='submit'
+  disabled={creating}
+  className='h-12 rounded-xl bg-[#1A1A1A] text-base font-bold text-white disabled:opacity-50'
+>
+  {creating ? 'Starting...' : 'Start playing'}
+</button>
         </form>
       </main>
     )
