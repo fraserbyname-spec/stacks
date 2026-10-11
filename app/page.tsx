@@ -377,7 +377,7 @@ export default function Home() {
         ) : (
           <>
             <p className='text-center text-base text-[#6B7280]'>
-              {busy ? 'Spinning...' : 'Pick a colour to spin'}
+              {busy ? 'Spinning...' : 'Pick a colour to play'}
             </p>
             <div className='flex gap-3'>
               <button
